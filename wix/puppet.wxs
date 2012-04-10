@@ -275,7 +275,7 @@
            (Puppet Labs\CommonProduct)
            in order to restore the PUPPET_MASTER_SERVER property when replacing
            Puppet FOSS with Puppet Enterprise. -->
-      <Component Id="RegistryEntries" Guid="5609A85E-BEAB-4807-B930-B7ED5D8E8F03">
+      <Component Id="RegistryEntries" Guid="68F5D91C-49C8-43F7-940A-481007689E79">
         <RegistryKey
           Root="HKLM"
           Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurCommonProductNameWord)"
@@ -300,6 +300,13 @@
           <RegistryValue Type="integer" Value="0"/>
           <!-- RememberedInstallDir -->
           <RegistryValue Name="RememberedInstallDir" Type="string" Value="[INSTALLDIR]" />
+        </RegistryKey>
+        <RegistryKey
+            Root="HKLM"
+            Key="SYSTEM\CurrentControlSet\services\eventlog\Application\Puppet"
+            Action="createAndRemoveOnUninstall">
+          <RegistryValue Type="string" Name="EventMessageFile" Value="[INSTALLDIR]puppet\conf\windows\eventlog\puppetres.dll"/>
+          <RegistryValue Type="integer" Name="TypesSupported" Value="7"/>
         </RegistryKey>
       </Component>
     </Directory>
