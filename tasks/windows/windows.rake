@@ -28,6 +28,7 @@ def variable_define_flags
   flags = Hash.new
   flags['PuppetDescTag'] = describe 'downloads/puppet'
   flags['FacterDescTag'] = describe 'downloads/facter'
+  flags['HieraDescTag']  = describe 'downloads/hiera'
 
   # The regular expression with back reference groups for version string
   # parsing.  We re-use this against either git-describe on Puppet or on
@@ -157,7 +158,7 @@ namespace :windows do
   # FEATURES = %w{ ruby git wix misc }
   FEATURES = %w{ ruby tools }
   # These are the applications we're packaging from VCS source
-  APPS = %w{ facter puppet }
+  APPS = %w{ facter puppet hiera }
   # Thse are the pre-compiled things we need to stage and include in
   # the packages
   DOWNLOADS = FEATURES.collect { |fn| File.join("downloads", fn.ext('zip')) }
@@ -208,6 +209,7 @@ namespace :windows do
     'ruby'   => { :src => 'stagedir/sys/ruby' },
     'puppet' => { :src => 'stagedir/puppet' },
     'facter' => { :src => 'stagedir/facter' },
+    'hiera'  => { :src => 'stagedir/hiera' },
   }
   # WXS UI Fragments.  These are static and should not be cleaned, though the
   # objects they compile into should be.  These are different than the objects
@@ -357,20 +359,24 @@ namespace :windows do
   task :stage => SYSTOOLS
 
   desc "Clone upstream repositories"
-  task :clone, [:puppet_uri, :facter_uri] => ['downloads'] do |t, args|
+  task :clone, [:puppet_uri, :facter_uri, :hiera_uri] => ['downloads'] do |t, args|
     baseuri = "git://github.com/puppetlabs"
     args.with_defaults(:puppet_uri => "#{baseuri}/puppet.git",
-                       :facter_uri => "#{baseuri}/facter.git")
+                       :facter_uri => "#{baseuri}/facter.git",
+                       :hiera_uri  => "#{baseuri}/hiera.git")
     Rake::Task["downloads/puppet"].invoke(args[:puppet_uri])
     Rake::Task["downloads/facter"].invoke(args[:facter_uri])
+    Rake::Task["downloads/hiera"].invoke(args[:hiera_uri])
   end
 
   desc "Checkout app repositories to a specific ref"
-  task :checkout, [:puppet_ref, :facter_ref] => [:clone] do |t, args|
+  task :checkout, [:puppet_ref, :facter_ref, :hiera_ref] => [:clone] do |t, args|
     # args.with_defaults(:puppet_ref => 'refs/remotes/origin/2.7.x',
     #                    :facter_ref => 'refs/remotes/origin/1.6.x')
+    #                    :hiera_ref  => 'refs/remotes/origin/master')
     args.with_defaults(:puppet_ref => 'origin/2.7.x',
-                       :facter_ref => 'origin/1.6.x')
+                       :facter_ref => 'origin/1.6.x',
+                       :hiera_ref  => 'origin/master')
     # This is an example of how to invoke other tasks that take parameters from
     # a task that takes parameters.
     Rake::Task["windows:checkout.facter"].invoke(args[:facter_ref])
