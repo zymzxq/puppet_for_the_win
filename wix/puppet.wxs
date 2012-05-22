@@ -464,6 +464,7 @@
       <ComponentGroupRef Id="puppet" />
       <ComponentGroupRef Id="facter" />
       <ComponentGroupRef Id="hiera" />
+      <ComponentGroupRef Id="hiera-puppet" />
       <?endif?>
       <ComponentGroupRef Id="bin" />
       <ComponentGroupRef Id="misc" />
