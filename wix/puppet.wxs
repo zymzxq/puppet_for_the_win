@@ -268,6 +268,19 @@
               </Component>
             </Directory>
           </Directory>
+          <Directory Id="HieraAppData" Name="hiera">
+            <Directory Id="HieraEtcDir" Name="etc">
+              <Component Id="HieraEtcDir" Permanent="yes" Guid="88DE0215-554E-44CC-A8EB-CD8C030B1695">
+                <CreateFolder />
+                <File Id="HieraConf" KeyPath="yes" Source="stagedir\hiera\ext\hiera.yaml" />
+              </Component>
+            </Directory>
+            <Directory Id="HieraVarDir" Name="var">
+              <Component Id="HieraVarDir" Permanent="yes" Guid="01C15CC4-74D1-4E33-887B-E25CA4A8EFB6">
+                <CreateFolder />
+              </Component>
+            </Directory>
+          </Directory>
         </Directory>
       </Directory>
       <!-- This section inspired by: http://wix.sourceforge.net/manual-wix3/write_a_registry_entry.htm -->
@@ -456,6 +469,8 @@
     <Feature Id="$(var.OurProductNameWord)Runtime" Title="$(var.OurProductName) Runtime" Level="1">
       <ComponentRef Id="RegistryEntries" />
       <ComponentRef Id="PuppetVarDir" />
+      <ComponentRef Id="HieraVarDir" />
+      <ComponentRef Id="HieraEtcDir" />
       <ComponentRef Id="PuppetShortcuts" />
       <ComponentRef Id="PuppetDocumentationShortcuts" />
       <?ifndef BUILD_UI_ONLY ?>
