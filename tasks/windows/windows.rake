@@ -211,7 +211,7 @@ namespace :windows do
     'puppet'        => { :src => 'stagedir/puppet' },
     'facter'        => { :src => 'stagedir/facter' },
     'hiera'         => { :src => 'stagedir/hiera' },
-    'hiera-puppet'  => { :src => 'stagedir/hiera-puppet' },
+    'hiera_puppet'  => { :src => 'stagedir/hiera-puppet' },
   }
   # WXS UI Fragments.  These are static and should not be cleaned, though the
   # objects they compile into should be.  These are different than the objects
