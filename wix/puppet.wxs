@@ -318,7 +318,7 @@
             Root="HKLM"
             Key="SYSTEM\CurrentControlSet\services\eventlog\Application\Puppet"
             Action="createAndRemoveOnUninstall">
-          <RegistryValue Type="string" Name="EventMessageFile" Value="[INSTALLDIR]puppet\conf\windows\eventlog\puppetres.dll"/>
+          <RegistryValue Type="string" Name="EventMessageFile" Value="[INSTALLDIR]puppet\ext\windows\eventlog\puppetres.dll"/>
           <RegistryValue Type="integer" Name="TypesSupported" Value="7"/>
         </RegistryKey>
       </Component>
