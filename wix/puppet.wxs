@@ -139,8 +139,8 @@
             </Directory>
             <Directory Id='service' Name='service'>
               <Component Id='PuppetService' Guid="639ECD7F-6186-43D5-9E1A-FC0278DBEE15">
-                <File Id="PuppetDaemonBat" KeyPath="yes" Source="conf\windows\service\daemon.bat" />
-                <File Id="PuppetDaemon" KeyPath="no" Source="conf\windows\service\daemon.rb" />
+                <File Id="PuppetDaemonBat" KeyPath="yes" Source="stagedir\puppet\ext\windows\service\daemon.bat" />
+                <File Id="PuppetDaemon" KeyPath="no" Source="stagedir\puppet\ext\windows\service\daemon.rb" />
                 <ServiceInstall Id="ServiceInstaller"
                   Account="LocalSystem"
                   Description="Periodically fetches and applies configurations from a Puppet master server."
