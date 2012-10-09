@@ -139,8 +139,8 @@
             </Directory>
             <Directory Id='service' Name='service'>
               <Component Id='PuppetService' Guid="639ECD7F-6186-43D5-9E1A-FC0278DBEE15">
-                <File Id="PuppetDaemonBat" KeyPath="yes" Source="conf\windows\service\daemon.bat" />
-                <File Id="PuppetDaemon" KeyPath="no" Source="conf\windows\service\daemon.rb" />
+                <File Id="PuppetDaemonBat" KeyPath="yes" Source="stagedir\puppet\ext\windows\service\daemon.bat" />
+                <File Id="PuppetDaemon" KeyPath="no" Source="stagedir\puppet\ext\windows\service\daemon.rb" />
                 <ServiceInstall Id="ServiceInstaller"
                   Account="LocalSystem"
                   Description="Periodically fetches and applies configurations from a Puppet master server."
@@ -268,6 +268,19 @@
               </Component>
             </Directory>
           </Directory>
+          <Directory Id="HieraAppData" Name="hiera">
+            <Directory Id="HieraEtcDir" Name="etc">
+              <Component Id="HieraEtcDir" Permanent="yes" Guid="88DE0215-554E-44CC-A8EB-CD8C030B1695">
+                <CreateFolder />
+                <File Id="HieraConf" KeyPath="yes" Source="stagedir\hiera\ext\hiera.yaml" />
+              </Component>
+            </Directory>
+            <Directory Id="HieraVarDir" Name="var">
+              <Component Id="HieraVarDir" Permanent="yes" Guid="01C15CC4-74D1-4E33-887B-E25CA4A8EFB6">
+                <CreateFolder />
+              </Component>
+            </Directory>
+          </Directory>
         </Directory>
       </Directory>
       <!-- This section inspired by: http://wix.sourceforge.net/manual-wix3/write_a_registry_entry.htm -->
@@ -305,7 +318,7 @@
             Root="HKLM"
             Key="SYSTEM\CurrentControlSet\services\eventlog\Application\Puppet"
             Action="createAndRemoveOnUninstall">
-          <RegistryValue Type="string" Name="EventMessageFile" Value="[INSTALLDIR]puppet\conf\windows\eventlog\puppetres.dll"/>
+          <RegistryValue Type="string" Name="EventMessageFile" Value="[INSTALLDIR]puppet\ext\windows\eventlog\puppetres.dll"/>
           <RegistryValue Type="integer" Name="TypesSupported" Value="7"/>
         </RegistryKey>
       </Component>
@@ -456,6 +469,8 @@
     <Feature Id="$(var.OurProductNameWord)Runtime" Title="$(var.OurProductName) Runtime" Level="1">
       <ComponentRef Id="RegistryEntries" />
       <ComponentRef Id="PuppetVarDir" />
+      <ComponentRef Id="HieraVarDir" />
+      <ComponentRef Id="HieraEtcDir" />
       <ComponentRef Id="PuppetShortcuts" />
       <ComponentRef Id="PuppetDocumentationShortcuts" />
       <?ifndef BUILD_UI_ONLY ?>
@@ -463,6 +478,7 @@
       <ComponentGroupRef Id="tools" />
       <ComponentGroupRef Id="puppet" />
       <ComponentGroupRef Id="facter" />
+      <ComponentGroupRef Id="hiera" />
       <?endif?>
       <ComponentGroupRef Id="bin" />
       <ComponentGroupRef Id="misc" />
