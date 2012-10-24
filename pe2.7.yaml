@@ -1,0 +1,11 @@
+---
+:repos:
+  puppet:
+    :ref: refs/tags/2.7.19
+    :repo: git://github.com/puppetlabs/puppet.git
+  facter:
+    :ref: refs/tags/1.6.10
+    :repo: git://github.com/puppetlabs/facter.git
+  sys:
+    :ref: origin/master
+    :repo: git://github.com/puppetlabs/puppet-win32-ruby.git
