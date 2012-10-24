@@ -12,10 +12,8 @@ rescue LoadError
 end
 
 require 'pathname'
+require 'yaml'
 require 'rake/clean'
-
-# Added download task from buildr
-require 'rake/downloadtask'
 
 # Where we're situated in the filesystem relative to the Rakefile
 TOPDIR=File.expand_path(File.join(File.dirname(__FILE__), "..", ".."))
@@ -107,36 +105,6 @@ def heat(wxs_file, stage_dir)
   end
 end
 
-def unzip(zip_file, dir)
-  Dir.chdir TOPDIR do
-    Dir.chdir dir do
-      sh "7za -y x \"#{File.join(TOPDIR, zip_file)}\""
-    end
-  end
-end
-
-def upload(zip_file)
-  Dir.chdir TOPDIR do
-    Dir.chdir File.dirname(zip_file) do
-      sh "rsync -avxHP #{File.basename(zip_file)} downloads.puppetlabs.com:/opt/downloads/development/ftw/"
-    end
-  end
-end
-
-def rezip(zip_file, dir)
-  Dir.chdir TOPDIR do
-    Dir.chdir File.dirname(dir) do
-      sh "7za -y a \"#{File.join(TOPDIR, zip_file)}\" #{File.basename(dir)}"
-    end
-  end
-end
-
-def gitclone(target, uri)
-  Dir.chdir(File.dirname(target)) do
-    sh "git clone #{uri} #{File.basename(target)}"
-  end
-end
-
 CLOBBER.include('downloads/*')
 CLEAN.include('stagedir/*')
 CLEAN.include('wix/fragments/*.wxs')
@@ -147,101 +115,105 @@ namespace :windows do
   # These are file tasks that behave like mkdir -p
   directory 'pkg'
   directory 'downloads'
-  directory 'stagedir/sys'
+  directory 'stagedir'
   directory 'wix/fragments'
 
-  ## File Lists
+  CONFIG = YAML.load_file(ENV["config"] || "config.yaml")
+  APPS = CONFIG[:repos]
 
-  TARGETS = FileList['pkg/puppet.msi']
-
-  # These translate to ZIP files we'll download
-  # FEATURES = %w{ ruby git wix misc }
-  FEATURES = %w{ ruby tools }
-  # These are the applications we're packaging from VCS source
-  APPS = %w{ facter puppet hiera }
-  # Thse are the pre-compiled things we need to stage and include in
-  # the packages
-  DOWNLOADS = FEATURES.collect { |fn| File.join("downloads", fn.ext('zip')) }
-
-  # We do this to provide a cache of sorts, allowing rake clean to clean but
-  # preventing the build tasks from having to re-clone all of puppet and facter
-  # which usually takes ~ 3 minutes.
-  GITREPOS  = APPS.collect { |fn| File.join("downloads", fn.ext('')) }
-
-  # These files provide customization of the installer strings.
-  LOCALIZED_STRINGS = FileList['wix/**/*.wxl']
-
-  # These are the VCS repositories checked out into downloads.
-  # For example, downloads/puppet and downloads/facter
-  GITREPOS.each do |repo|
-    file repo, [:uri] => ['downloads'] do |t, args|
-      args.with_defaults(:uri => "git://github.com/puppetlabs/#{File.basename(t.name).ext('.git')}")
-      Dir.chdir File.dirname(t.name) do
-        sh "git clone #{args[:uri]} #{File.basename(t.name)}"
+  task :clone => 'downloads' do
+    APPS.each do |name, config|
+      if not File.exists?("downloads/#{name}")
+        Dir.chdir "#{TOPDIR}/downloads" do
+          sh "git clone #{config[:repo]} #{name}"
+        end
       end
     end
+  end
 
-    # These tasks are not meant to be executed every build They're meant to
-    # provide the means to checkout the reference we want prior to running the
-    # build.  See the windows:checkout task for more information
-    task "checkout.#{File.basename(repo.ext(''))}", [:ref] => [repo] do |t, args|
-      repo_dir = t.name.gsub(/^.*?checkout\./, 'downloads/')
-      args.with_defaults(:ref => 'refs/remotes/origin/master')
-      Dir.chdir repo_dir do
+  task :checkout => :clone do
+    APPS.each do |name, config|
+      Dir.chdir "#{TOPDIR}/downloads/#{name}" do
         sh 'git fetch origin'
         sh 'git fetch origin --tags'
-        # We explicitly avoid using git clean -x because we rely on rake clean
-        # to clean up build artifacts.  Specifically, we don't want to clone
-        # and download zip files every single build
-        sh 'git clean -f -d'
-        sh "git checkout -f #{args[:ref]}"
+        sh 'git clean -xfd'
+        sh "git checkout -f #{config[:ref]}"
       end
     end
   end
 
-  # There is a 1:1 mapping between a wxs file and a wixobj file
-  # The wxs files in the top level of wix/ should be committed to VCS
-  WXSFILES = FileList['wix/*.wxs']
-  # WXS Fragments could have different types of sources and are generated
-  # during the build process by heat.exe
-  WXS_FRAGMENTS_HASH = {
-    'tools'         => { :src => 'stagedir/sys/tools' },
-    'ruby'          => { :src => 'stagedir/sys/ruby' },
-    'puppet'        => { :src => 'stagedir/puppet' },
-    'facter'        => { :src => 'stagedir/facter' },
-    'hiera'         => { :src => 'stagedir/hiera' },
-  }
-  # WXS UI Fragments.  These are static and should not be cleaned, though the
-  # objects they compile into should be.  These are different than the objects
-  # produced by heat because they only contain UI customizations and no actual
-  # files or components or such.
-  WXS_UI_FRAGMENTS = FileList['wix/ui/*.wxs']
-  WXS_UI_OBJS = WXS_UI_FRAGMENTS.ext('wixobj')
+  task :bin => 'stagedir' do
+    FileUtils.cp_r("conf/windows/stage/bin", "stagedir/bin")
+  end
 
-  # Additional directories to stage as fragments automatically.
-  # conf/windows/stagedir/bin/ for example.
-  FileList[File.join(TOPDIR, 'conf', 'windows', 'stage', '*')].each do |fn|
-    my_topdir = File.basename(fn)
-    WXS_FRAGMENTS_HASH[my_topdir] = { :src => "stagedir/#{my_topdir}" }
-    file "stagedir/#{my_topdir}" => ["stagedir"] do |t|
-      src = File.join(TOPDIR, 'conf', 'windows', 'stage', File.basename(t.name))
-      dst = t.name
-      FileUtils.cp_r src, dst
+  task :misc => 'stagedir' do
+    FileUtils.cp_r("conf/windows/stage/misc", "stagedir/misc")
+  end
+
+  task :stage => [:checkout, 'stagedir', :bin, :misc] do
+    FileList["downloads/*"].each do |app|
+      dst = "stagedir/#{File.basename(app)}"
+      puts "Copying #{app} to #{dst} ..."
+      FileUtils.mkdir(dst)
+      # This avoids copying hidden files like .gitignore and .git
+      FileUtils.cp_r FileList["#{app}/*"], dst
     end
-    task :stage => ["stagedir/#{my_topdir}"]
   end
 
-  # These files should be auto-generated by heat
-  WXS_FRAGMENTS = WXS_FRAGMENTS_HASH.keys.collect do |fn|
-    File.join("wix", "fragments", fn.ext('wxs'))
+  task :wxs => [:stage, 'wix/fragments'] do
+    FileList["stagedir/*"].each do |staging|
+      name = File.basename(staging)
+      heat("wix/fragments/#{name}.wxs", staging)
+    end
   end
-  # All of the objects we need to create
-  WIXOBJS = (WXSFILES + WXS_FRAGMENTS).ext('wixobj')
-  # UI Only objects we need to link.  Filter out the large objects like Ruby, Puppet and Facter
-  # These objects need to match up to the preprocessor conditional in puppet.wxs
-  WIXOBJS_MIN = (WXSFILES + WXS_FRAGMENTS.find_all { |f| f =~ /misc|bin/ }).ext 'wixobj'
-  # These directories should be unpacked into stagedir/sys
-  SYSTOOLS = FEATURES.collect { |fn| File.join("stagedir", "sys", fn) }
+
+  task :wixobj => :wxs do
+    FileList['wix/*.wxs'].each do |wxs|
+      candle(wxs)
+    end
+    FileList['wix/fragments/*.wxs'].each do |wxs|
+      source_dir = "stagedir/#{File.basename(wxs, '.wxs')}"
+      candle(wxs, [ "-dStageDir=#{source_dir}" ])
+    end
+  end
+
+  task :wixobj_ui do
+    FileList['wix/ui/*.wxs'].each do |wxs|
+      candle(wxs)
+    end
+  end
+
+  task :version do
+    if ENV['PE_VERSION_STRING']
+      if File.exists?('stagedir/puppet/lib/puppet/version.rb')
+        version_file = 'stagedir/puppet/lib/puppet/version.rb'
+      else
+        version_file = 'stagedir/puppet/lib/puppet.rb'
+      end
+
+      content = File.open(version_file, 'rb') { |f| f.read }
+
+      modified = content.gsub(/(PUPPETVERSION\s*=\s*)(['"])(.*?)(['"])/) do |match|
+        "#{$1}#{$2}#{$3} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{$2}"
+      end
+
+      if content == modified
+        raise ArgumentError, "(#12975) Could not patch puppet.rb.  Check the regular expression around this line in the backtrace against stagedir/puppet/lib/puppet.rb"
+      end
+
+      File.open(version_file, "wb") { |f| f.write(modified) }
+    end
+  end
+
+  task :msi => [:wixobj, :wixobj_ui, :version] do
+    OBJS = FileList['wix/**/*.wixobj']
+
+    out = ENV['BRANDING'] =~ /enterprise/i ? 'puppetenterprise' : 'puppet'
+
+    Dir.chdir TOPDIR do
+      sh "light -ext WiXUtilExtension -ext WixUIExtension -cultures:en-us -loc wix/localization/puppet_en-us.wxl -out pkg/#{out}.msi #{OBJS}"
+    end
+  end
 
   # Sign all packages
   desc "Sign all MSI packages"
@@ -252,7 +224,7 @@ namespace :windows do
   # signtool.exe must be in your path for this task to work.  You'll need to
   # install the Windows SDK to get signtool.exe.  puppetwinbuilder.zip's
   # setup_env.bat should have added it to the PATH already.
-  task :sign_pe => [ "pkg" ] do |t|
+  task :sign_pe => 'pkg' do |t|
     Dir.chdir TOPDIR do
       Dir.chdir "pkg" do
         sh 'signtool sign /d "Puppet Enterprise" /du "http://www.puppetlabs.com" /n "Puppet Labs" /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppetenterprise.msi'
@@ -264,34 +236,10 @@ namespace :windows do
   # signtool.exe must be in your path for this task to work.  You'll need to
   # install the Windows SDK to get signtool.exe.  puppetwinbuilder.zip's
   # setup_env.bat should have added it to the PATH already.
-  task :sign_foss => [ "pkg" ] do |t|
+  task :sign_foss => 'pkg' do |t|
     Dir.chdir TOPDIR do
       Dir.chdir "pkg" do
         sh 'signtool sign /d "Puppet" /du "http://www.puppetlabs.com" /n "Puppet Labs" /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppet.msi'
-      end
-    end
-  end
-
-  # Update the ruby archive.  Helpful after updating Gems
-  desc "Repack the zip archives"
-  task :repack => ["stagedir/sys", "downloads"] do |t|
-    Dir.chdir TOPDIR do
-      Dir.chdir "stagedir/sys" do
-        Dir['*'].each do |d|
-          rezip("downloads/#{d}.zip", "stagedir/sys/#{d}")
-        end
-      end
-    end
-  end
-
-  # Upload the repacked ruby zip file.  Helpful after updating Gems
-  desc "Upload the zip archives archive"
-  task :upload => ["downloads"] do |t|
-    Dir.chdir TOPDIR do
-      Dir.chdir "downloads" do
-        Dir['*.zip'].each do |zip|
-          upload "downloads/#{zip}"
-        end
       end
     end
   end
@@ -300,88 +248,23 @@ namespace :windows do
   # High Level Tasks.  Other tasks will add themselves to these tasks
   # dependencies.
 
-  desc "Clean only wixobj files."
-  task :cleanobjects do
-    WIXOBJS.each do |wixobj|
-      rm wixobj if Pathname.new(wixobj).exist?
-    end
-  end
-
   # This is also called from the build script in the Puppet Win Builder archive.
   # This will be called AFTER the update task in a new process.
   desc "Build puppet.msi"
-  task :build do |t|
-    ENV['BRANDING'] ||= "foss"
-    Rake::Task["windows:cleanobjects"].execute
-    Rake::Task["pkg/puppet.msi"].invoke
-  end
-
-  desc "Build puppet_ui_only.msi"
-  task :buildui do |t|
-    ENV['BRANDING'] ||= "foss"
-    ENV['BUILD_UI_ONLY'] ||= 'true'
-    Rake::Task["windows:cleanobjects"].execute
-    Rake::Task["pkg/puppet_ui_only.msi"].invoke
+  task :build => :clean do |t|
+    ENV['BRANDING'] = 'foss'
+    ENV['PE_VERSION_STRING'] = nil
+    Rake::Task["windows:msi"].invoke
   end
 
   desc "Build puppetenterprise.msi"
-  task :buildenterprise do |t|
-    ENV['BRANDING'] ||= "enterprise"
+  task :buildenterprise => :clean do |t|
+    ENV['BRANDING'] = "enterprise"
     if not ENV['PE_VERSION_STRING']
       puts "Warning: PE_VERSION_STRING is not set in the environment.  Defaulting to 2.5.0"
       ENV['PE_VERSION_STRING'] = '2.5.0'
     end
-    Rake::Task["windows:cleanobjects"].execute
-
-    # The puppet.wixobj task requires the puppet version patch
-    task "wix/fragments/puppet.wxs" => [ "stagedir/puppet/lib/puppet.rb.bak" ]
-
-    Rake::Task["pkg/puppetenterprise.msi"].invoke
-  end
-
-  desc "Build puppetenterprise_ui_only.msi"
-  task :buildenterpriseui do |t|
-    ENV['BRANDING'] ||= "enterprise"
-    ENV['BUILD_UI_ONLY'] ||= 'true'
-    if not ENV['PE_VERSION_STRING']
-      puts "Warning: PE_VERSION_STRING is not set in the environment.  Defaulting to 2.5.0-0-0"
-      ENV['PE_VERSION_STRING'] = '2.5.0'
-    end
-    Rake::Task["windows:cleanobjects"].execute
-    Rake::Task["pkg/puppetenterprise_ui_only.msi"].invoke
-  end
-
-  desc "Download example"
-  task :download => DOWNLOADS
-
-  # Note, other tasks may append themselves as necessary for the stage task.
-  desc "Stage everything to be built"
-  task :stage => SYSTOOLS
-
-  desc "Clone upstream repositories"
-  task :clone, [:puppet_uri, :facter_uri, :hiera_uri ] => ['downloads'] do |t, args|
-    baseuri = "git://github.com/puppetlabs"
-    args.with_defaults(:puppet_uri        => "#{baseuri}/puppet.git",
-                       :facter_uri        => "#{baseuri}/facter.git",
-                       :hiera_uri         => "#{baseuri}/hiera.git")
-    Rake::Task["downloads/puppet"].invoke(args[:puppet_uri])
-    Rake::Task["downloads/facter"].invoke(args[:facter_uri])
-    Rake::Task["downloads/hiera"].invoke(args[:hiera_uri])
-  end
-
-  desc "Checkout app repositories to a specific ref"
-  task :checkout, [:puppet_ref, :facter_ref, :hiera_ref ] => [:clone] do |t, args|
-    # args.with_defaults(:puppet_ref        => 'refs/remotes/origin/3.x',
-    #                    :facter_ref        => 'refs/remotes/origin/1.6.x',
-    #                    :hiera_ref         => 'refs/remotes/origin/1.x',
-    args.with_defaults(:puppet_ref        => 'origin/3.x',
-                       :facter_ref        => 'origin/1.6.x',
-                       :hiera_ref         => 'origin/1.x')
-    # This is an example of how to invoke other tasks that take parameters from
-    # a task that takes parameters.
-    Rake::Task["windows:checkout.facter"].invoke(args[:facter_ref])
-    Rake::Task["windows:checkout.puppet"].invoke(args[:puppet_ref])
-    Rake::Task["windows:checkout.hiera"].invoke(args[:hiera_ref])
+    Rake::Task["windows:msi"].invoke
   end
 
   desc "List available rake tasks"
@@ -397,114 +280,15 @@ namespace :windows do
     sh 'git pull'
   end
 
-  # Tasks to unpack the zip files
-  SYSTOOLS.each do |systool|
-    zip_file = File.join("downloads", File.basename(systool).ext('zip'))
-    file systool => [ zip_file, File.dirname(systool) ] do
-      unzip(zip_file, File.dirname(systool))
-    end
-  end
-
-  DOWNLOADS.each do |fn|
-    file fn => [ File.dirname(fn) ] do |t|
-      download t.name => "http://downloads.puppetlabs.com/development/ftw/#{File.basename(t.name)}"
-    end
-  end
-
-  WIXOBJS.each do |wixobj|
-    source_dir = WXS_FRAGMENTS_HASH[File.basename(wixobj.ext(''))][:src]
-    file wixobj => [ wixobj.ext('wxs'), File.dirname(wixobj) ] do |t|
-      candle(t.name.ext('wxs'), [ "-dStageDir=#{source_dir}" ] )
-    end
-  end
-
-  WXS_UI_OBJS.each do |wixobj|
-    file wixobj => [ wixobj.ext('wxs') ] do |t|
-      candle(t.name.ext('wxs'))
-    end
-  end
-
-  WXS_FRAGMENTS.each do |wxs_frag|
-    source_dir = WXS_FRAGMENTS_HASH[File.basename(wxs_frag.ext(''))][:src]
-    file wxs_frag => [ source_dir, File.dirname(wxs_frag) ] do |t|
-      heat(t.name, source_dir)
-    end
-  end
-
-  # We stage whatever is checked out using the checkout parameterized task.
-  APPS.each do |app|
-    file "stagedir/#{app}" => ['stagedir', "downloads/#{app}"] do |t|
-      my_app = File.basename(t.name.ext(''))
-      puts "Copying downloads/#{my_app} to #{t.name} ..."
-      FileUtils.mkdir_p t.name
-      # This avoids copying hidden files like .gitignore and .git
-      FileUtils.cp_r FileList["downloads/#{my_app}/*"], t.name
-    end
-    # The stage task needs these directories to be in place.
-    task :stage => ["stagedir/#{app}"]
-  end
-
-  # Patch the Puppet Version string.  The intent is that this task will only be
-  # invoked by the windows:puppetenterprise task.  If both Puppet and Puppet
-  # Enterprise are being built then the order should be:
-  # 1: rake clean (Clean up any patched puppetversion)
-  # 2: rake windows:build (puppetversion will not be patched)
-  # 3: rake windows:buildenterprise (puppetversion will be patched)
-  file 'stagedir/puppet/lib/puppet.rb.bak' => [ "stagedir/puppet" ] do |t|
-    version_file = 'stagedir/puppet/lib/puppet.rb'
-    raise ArgumentError, "Environment PE_VERSION_STRING must be set." unless ENV['PE_VERSION_STRING']
-    patched = false
-    cp version_file, "#{version_file}.bak"
-
-    # Open the backup file for reading and the original file for writing.
-    File.open("#{version_file}.bak", 'r') do |infile|
-      File.open(version_file, "w") do |outfile|
-        # Make sure we don't translate LF to CRLF when building on windows
-        outfile.binmode
-        # Filter every line in the input file.
-        infile.each_line do |line|
-          re = /(PUPPETVERSION\s*=\s*)(['"])(.*?)(['"])/
-          new_line = line.gsub(re) do |match|
-            patched = true
-            "#{$1}#{$2}#{$3} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{$2}"
-          end
-          outfile.print new_line
-        end
-      end
-    end
-    raise ArgumentError, "(#12975) Could not patch puppet.rb.  Check the regular expression around this line in the backtrace against stagedir/puppet/lib/puppet.rb" unless patched
-  end
-
-  # REVISIT - DRY THIS SECTION UP, lots of copy paste code here...
-  file 'pkg/puppet.msi' => WIXOBJS + WXS_UI_OBJS + LOCALIZED_STRINGS do |t|
-    objects_to_link = t.prerequisites.reject { |f| f =~ /wxl$/ }.join(' ')
-    sh "light -ext WiXUtilExtension -ext WixUIExtension -cultures:en-us -loc wix/localization/puppet_en-us.wxl -out #{t.name} #{objects_to_link}"
-  end
-
-  file 'pkg/puppetenterprise.msi' => WIXOBJS + WXS_UI_OBJS + LOCALIZED_STRINGS do |t|
-    objects_to_link = t.prerequisites.reject { |f| f =~ /wxl$/ }.join(' ')
-    sh "light -ext WiXUtilExtension -ext WixUIExtension -cultures:en-us -loc wix/localization/puppet_en-us.wxl -out #{t.name} #{objects_to_link}"
-  end
-
-  file 'pkg/puppet_ui_only.msi' => WIXOBJS_MIN + WXS_UI_OBJS + LOCALIZED_STRINGS do |t|
-    objects_to_link = t.prerequisites.reject { |f| f =~ /wxl$/ }.join(' ')
-    sh "light -ext WiXUtilExtension -ext WixUIExtension -cultures:en-us -loc wix/localization/puppet_en-us.wxl -out #{t.name} #{objects_to_link}"
-  end
-
-  file 'pkg/puppetenterprise_ui_only.msi' => WIXOBJS_MIN + WXS_UI_OBJS + LOCALIZED_STRINGS do |t|
-    objects_to_link = t.prerequisites.reject { |f| f =~ /wxl$/ }.join(' ')
-    sh "light -ext WiXUtilExtension -ext WixUIExtension -cultures:en-us -loc wix/localization/puppet_en-us.wxl -out #{t.name} #{objects_to_link}"
-  end
-
   desc 'Install the MSI using msiexec'
-  task :install => [ 'pkg/puppet.msi', 'pkg' ] do |t|
+  task :install => 'pkg/puppet.msi' do |t|
     Dir.chdir "pkg" do
       sh 'msiexec /q /l*v install.txt /i puppet.msi INSTALLDIR="C:\puppet" PUPPET_MASTER_SERVER="puppetmaster" PUPPET_AGENT_CERTNAME="windows.vm"'
     end
   end
 
   desc 'Uninstall the MSI using msiexec'
-  task :uninstall => [ 'pkg/puppet.msi', 'pkg' ] do |t|
+  task :uninstall => 'pkg/puppet.msi' do |t|
     Dir.chdir "pkg" do
       sh 'msiexec /qn /l*v uninstall.txt /x puppet.msi'
     end

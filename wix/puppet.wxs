@@ -473,18 +473,14 @@
       <ComponentRef Id="HieraEtcDir" />
       <ComponentRef Id="PuppetShortcuts" />
       <ComponentRef Id="PuppetDocumentationShortcuts" />
-      <?ifndef BUILD_UI_ONLY ?>
-      <ComponentGroupRef Id="ruby" />
-      <ComponentGroupRef Id="tools" />
+
+      <ComponentGroupRef Id="sys" />
       <ComponentGroupRef Id="puppet" />
       <ComponentGroupRef Id="facter" />
       <ComponentGroupRef Id="hiera" />
-      <?endif?>
       <ComponentGroupRef Id="bin" />
       <ComponentGroupRef Id="misc" />
-      <!-- We may not need an etc directory out of the box.
-      <ComponentGroupRef Id="etc" />
-      -->
+
       <!-- The PuppetConf components are conditional on PUPPET_AGENT_CERTNAME -->
       <ComponentRef Id="PuppetConfWithCertname" />
       <ComponentRef Id="PuppetConfWithCaServer" />
