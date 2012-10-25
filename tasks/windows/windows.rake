@@ -195,8 +195,10 @@ namespace :windows do
     if ENV['PE_VERSION_STRING']
       if File.exists?('stagedir/puppet/lib/puppet/version.rb')
         version_file = 'stagedir/puppet/lib/puppet/version.rb'
-      else
+      elsif File.exists?('stagedir/puppet/lib/puppet.rb')
         version_file = 'stagedir/puppet/lib/puppet.rb'
+      else
+        raise ArgumentError, "Could not patch puppet version, no version file found"
       end
 
       content = File.open(version_file, 'rb') { |f| f.read }
@@ -206,7 +208,7 @@ namespace :windows do
       end
 
       if content == modified
-        raise ArgumentError, "(#12975) Could not patch puppet.rb.  Check the regular expression around this line in the backtrace against stagedir/puppet/lib/puppet.rb"
+        raise ArgumentError, "(#12975) Could not patch puppet.rb.  Check the regular expression around this line in the backtrace against #{version_file}"
       end
 
       File.open(version_file, "wb") { |f| f.write(modified) }
