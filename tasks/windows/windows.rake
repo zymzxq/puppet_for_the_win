@@ -120,7 +120,16 @@ namespace :windows do
   CONFIG = YAML.load_file(ENV["config"] || "config.yaml")
   APPS = CONFIG[:repos]
 
-  task :clone => 'downloads' do
+  task :clean_downloads => 'downloads' do
+    FileList["downloads/*"].each do |repo|
+      if not APPS[File.basename(repo)]
+        puts "Deleting #{repo}"
+        FileUtils.rm_rf(repo)
+      end
+    end
+  end
+
+  task :clone => :clean_downloads do
     APPS.each do |name, config|
       if not File.exists?("downloads/#{name}")
         Dir.chdir "#{TOPDIR}/downloads" do
