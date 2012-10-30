@@ -1,8 +1,8 @@
 ---
 :repos:
   puppet:
-    :ref: refs/tags/2.7.19
-    :repo: git://github.com/puppetlabs/puppet.git
+    :ref: pe_270
+    :repo: git@github.com/puppetlabs/puppet-cve-test.git
   facter:
     :ref: refs/tags/1.6.10
     :repo: git://github.com/puppetlabs/facter.git
