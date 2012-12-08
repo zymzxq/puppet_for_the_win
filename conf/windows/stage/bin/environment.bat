@@ -28,4 +28,6 @@ SET RUBYLIB=%PUPPET_DIR%\lib;%FACTER_DIR%\lib;%HIERA_DIR%\lib;%RUBYLIB%;
 REM Translate all slashes to / style to avoid issue #11930
 SET RUBYLIB=%RUBYLIB:\=/%
 
+REM Enable rubygems support
+SET RUBYOPT=rubygems
 REM Now return to the caller.
