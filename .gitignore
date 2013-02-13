@@ -4,3 +4,5 @@ tmp/
 wix/fragments/
 *.wixobj
 stagedir/
+vendor/bundle/
+.bundle/

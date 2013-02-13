@@ -3,6 +3,9 @@
 # This rakefile is meant to be run from within the [Puppet Win
 # Builder](http://links.puppetlabs.com/puppetwinbuilder) tree.
 
+# Ensure '.' is in the LOAD_PATH in Ruby 1.9.2
+$LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__))
+
 # Load Rake
 begin
   require 'rake'
@@ -25,8 +28,5 @@ require 'rake/env'
 task :default do
     sh %{rake -T}
 end
-
-# Ensure '.' is in the LOAD_PATH in Ruby 1.9.2
-$LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__))
 
 Dir['tasks/**/*.rake'].each { |t| load t }
