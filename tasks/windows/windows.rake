@@ -198,9 +198,15 @@ namespace :windows do
     FileUtils.mv("stagedir/mcollective/plugins/mcollective", "stagedir/mcollective_plugins/")
   end
 
+  task :remove_vendor => [ :stage ] do
+    puts "Removing vendored JSON from mcollective..."
+    FileUtils.rm_rf(["stagedir/mcollective/lib/mcollective/vendor/json", "stagedir/mcollective/lib/mcollective/vendor/load_json.rb"])
+  end
+
   task :wxs => [ :stage, 'wix/fragments' ] do
     if ENV["BRANDING"] == "enterprise"
       Rake::Task["windows:stage_plugins"].invoke
+      Rake::Task["windows:remove_vendor"].invoke
     end
     FileList["stagedir/*"].each do |staging|
       name = File.basename(staging)
