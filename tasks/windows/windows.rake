@@ -47,7 +47,8 @@ def variable_define_flags
   when /enterprise/i
     flags['PackageBrand'] = "enterprise"
     msg = "Could not parse PE_VERSION_STRING env variable.  Set it with something like PE_VERSION_STRING=2.5.0"
-    # The Package Version components for FOSS
+    flags['MCODescTag']  = describe 'downloads/mcollective'
+    # The Package Version components for PE
     match_data = nil
     version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
       match_data = ENV['PE_VERSION_STRING'].match re
@@ -129,7 +130,7 @@ namespace :windows do
   # These are file tasks that behave like mkdir -p
   directory 'pkg'
   directory 'downloads'
-  directory 'stagedir'
+  directory 'stagedir/bin'
   directory 'wix/fragments'
 
   CONFIG = YAML.load_file(ENV["config"] || "config.yaml")
@@ -166,7 +167,15 @@ namespace :windows do
   end
 
   task :bin => 'stagedir' do
-    FileUtils.cp_r("conf/windows/stage/bin", "stagedir/bin")
+    FileList["conf/windows/stage/bin/*.erb"].each do |template|
+      target = template.gsub(/\.erb$/,"")
+      erb(template, target)
+    end
+
+    mkdir_p("stagedir/bin")
+
+    # Only copy the .bat files into place
+    cp_p(FileList["conf/windows/stage/bin/*.bat"], "stagedir/bin/")
   end
 
   task :misc => 'stagedir' do
@@ -183,7 +192,16 @@ namespace :windows do
     end
   end
 
-  task :wxs => [:stage, 'wix/fragments'] do
+  task :stage_plugins => [ :stage ] do
+    puts "Moving MCO plugins into their own directory..."
+    FileUtils.mkdir_p "stagedir/mcollective_plugins"
+    FileUtils.mv("stagedir/mcollective/plugins/mcollective", "stagedir/mcollective_plugins/")
+  end
+
+  task :wxs => [ :stage, 'wix/fragments' ] do
+    if ENV["BRANDING"] == "enterprise"
+      Rake::Task["windows:stage_plugins"].invoke
+    end
     FileList["stagedir/*"].each do |staging|
       name = File.basename(staging)
       heat("wix/fragments/#{name}.wxs", staging)
