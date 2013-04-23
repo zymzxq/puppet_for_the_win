@@ -1,0 +1,17 @@
+---
+:repos:
+  puppet:
+    :ref: refs/tags/3.2.0-rc1
+    :repo: git://github.com/puppetlabs/puppet.git
+  facter:
+    :ref: refs/tags/1.7.0
+    :repo: git://github.com/puppetlabs/facter.git
+  hiera:
+    :ref: refs/tags/1.2.1
+    :repo: git://github.com/puppetlabs/hiera.git
+  mcollective:
+    :ref: refs/tags/2.2.3
+    :repo: git://github.com/puppetlabs/marionette-collective.git
+  sys:
+    :ref: origin/1.9.3
+    :repo: git://github.com/puppetlabs/puppet-win32-ruby.git
