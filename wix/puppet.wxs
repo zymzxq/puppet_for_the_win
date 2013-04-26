@@ -167,13 +167,13 @@
                   Description="Puppet Labs server orchestration framework"
                   DisplayName="Marionette Collective Server"
                   Interactive="no"
-                  Name="mcollectived"
+                  Name="pe-mcollective"
                   Start="demand"
                   Type="ownProcess"
                   ErrorControl="normal"
                   Vital="yes"
                   />
-                <ServiceControl Id="MCOStartService" Stop="both" Remove="uninstall" Name="mcollectived" Wait="yes" />
+                <ServiceControl Id="MCOStartService" Stop="both" Remove="uninstall" Name="pe-mcollective" Wait="yes" />
               </Component>
               <?endif ?>
             </Directory>
