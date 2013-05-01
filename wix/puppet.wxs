@@ -146,13 +146,13 @@
                   Description="Periodically fetches and applies configurations from a Puppet master server."
                   DisplayName="Puppet Agent"
                   Interactive="no"
-                  Name="puppet"
+                  Name="$(var.PuppetServiceName)"
                   Start="auto"
                   Type="ownProcess"
                   ErrorControl="normal"
                   Vital="yes"
                   />
-                <ServiceControl Id="StartService" Start="install" Stop="both" Remove="uninstall" Name="puppet" Wait="yes" />
+                <ServiceControl Id="StartService" Start="install" Stop="both" Remove="uninstall" Name="$(var.PuppetServiceName)" Wait="yes" />
               </Component>
               <!-- mcollective is only installed for Puppet Enterprise -->
               <?if $(var.PackageBrand) = enterprise ?>

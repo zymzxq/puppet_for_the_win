@@ -45,6 +45,7 @@
     <?define VersionUIString="$(var.MajorVersion).$(var.MinorVersion).$(var.BuildVersion)" ?>
     <?define BitmapFolder="wix\ui\bitmaps" ?>
     <?define DialogBitmap="dlgbmp-pe.bmp" ?>
+    <?define PuppetServiceName="pe-puppet" ?>
   <?else ?>
     <?define OurProductName="Puppet" ?>
     <?define OurProductNameWord="Puppet" ?>
@@ -54,5 +55,6 @@
     <?define VersionUIString="$(var.PuppetDescTag)" ?>
     <?define BitmapFolder="wix\ui\bitmaps" ?>
     <?define DialogBitmap="dlgbmp-foss.bmp" ?>
+    <?define PuppetServiceName="puppet" ?>
   <?endif ?>
 </Include>
