@@ -13,6 +13,7 @@ end
 
 require 'pathname'
 require 'yaml'
+require 'erb'
 require 'rake/clean'
 
 # Where we're situated in the filesystem relative to the Rakefile
@@ -46,7 +47,8 @@ def variable_define_flags
   when /enterprise/i
     flags['PackageBrand'] = "enterprise"
     msg = "Could not parse PE_VERSION_STRING env variable.  Set it with something like PE_VERSION_STRING=2.5.0"
-    # The Package Version components for FOSS
+    flags['MCODescTag']  = describe 'downloads/mcollective'
+    # The Package Version components for PE
     match_data = nil
     version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
       match_data = ENV['PE_VERSION_STRING'].match re
@@ -76,6 +78,19 @@ end
 def describe(dir)
   @git_tags ||= Hash.new
   @git_tags[dir] ||= Dir.chdir(dir) { %x{git describe}.chomp }
+end
+
+def erb(erbfile, outfile)
+  template         = File.read(erbfile)
+  message          = ERB.new(template, nil, "-")
+  message.filename = erbfile
+  output           = message.result(binding)
+  File.open(outfile, 'wb') { |f| f.write output }
+  puts "Generated: #{outfile}"
+end
+
+def cp_p(src, dest, options={})
+  cp(src, dest, options.merge({:preserve => true}))
 end
 
 # Produce a wixobj from a wxs file.
@@ -115,7 +130,7 @@ namespace :windows do
   # These are file tasks that behave like mkdir -p
   directory 'pkg'
   directory 'downloads'
-  directory 'stagedir'
+  directory 'stagedir/bin'
   directory 'wix/fragments'
 
   CONFIG = YAML.load_file(ENV["config"] || "config.yaml")
@@ -152,7 +167,15 @@ namespace :windows do
   end
 
   task :bin => 'stagedir' do
-    FileUtils.cp_r("conf/windows/stage/bin", "stagedir/bin")
+    FileList["conf/windows/stage/bin/*.erb"].each do |template|
+      target = template.gsub(/\.erb$/,"")
+      erb(template, target)
+    end
+
+    mkdir_p("stagedir/bin")
+
+    # Only copy the .bat files into place
+    cp_p(FileList["conf/windows/stage/bin/*.bat"], "stagedir/bin/")
   end
 
   task :misc => 'stagedir' do
@@ -169,7 +192,22 @@ namespace :windows do
     end
   end
 
-  task :wxs => [:stage, 'wix/fragments'] do
+  task :stage_plugins => [ :stage ] do
+    puts "Moving MCO plugins into their own directory..."
+    FileUtils.mkdir_p "stagedir/mcollective_plugins"
+    FileUtils.mv("stagedir/mcollective/plugins/mcollective", "stagedir/mcollective_plugins/")
+  end
+
+  task :remove_vendor => [ :stage ] do
+    puts "Removing vendored JSON from mcollective..."
+    FileUtils.rm_rf(["stagedir/mcollective/lib/mcollective/vendor/json", "stagedir/mcollective/lib/mcollective/vendor/load_json.rb"])
+  end
+
+  task :wxs => [ :stage, 'wix/fragments' ] do
+    if ENV["BRANDING"] == "enterprise"
+      Rake::Task["windows:stage_plugins"].invoke
+      Rake::Task["windows:remove_vendor"].invoke
+    end
     FileList["stagedir/*"].each do |staging|
       name = File.basename(staging)
       heat("wix/fragments/#{name}.wxs", staging)

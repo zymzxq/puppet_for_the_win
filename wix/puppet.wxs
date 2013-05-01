@@ -154,6 +154,28 @@
                   />
                 <ServiceControl Id="StartService" Start="install" Stop="both" Remove="uninstall" Name="puppet" Wait="yes" />
               </Component>
+              <!-- mcollective is only installed for Puppet Enterprise -->
+              <?if $(var.PackageBrand) = enterprise ?>
+              <Component Id='MCOService' Guid="7601FCEA-90B3-CC69-6A69-4087FBC7292D">
+                <File Id="MCODaemonBat" KeyPath="yes" Source="stagedir\mcollective\ext\windows\daemon.bat" Name="mco_daemon.bat" />
+                <!-- This service is installed with start set to demand because
+                it won't be correctly configured to start right away. The
+                puppet run that configures mcollective will allow it to start
+                and set it to automatic -->
+                <ServiceInstall Id="MCOServiceInstaller"
+                  Account="LocalSystem"
+                  Description="Puppet Labs server orchestration framework"
+                  DisplayName="Marionette Collective Server"
+                  Interactive="no"
+                  Name="pe-mcollective"
+                  Start="demand"
+                  Type="ownProcess"
+                  ErrorControl="normal"
+                  Vital="yes"
+                  />
+                <ServiceControl Id="MCOStartService" Stop="both" Remove="uninstall" Name="pe-mcollective" Wait="yes" />
+              </Component>
+              <?endif ?>
             </Directory>
           </Directory>
         </Directory>
@@ -175,24 +197,26 @@
                   Section="facts"
                   Key="fact_stomp_server" Value="[PUPPET_MASTER_SERVER]"
                   Directory="FactsDotD" />
-                <IniFile Id="PuppetInstallerFactIsPuppetMaster" Name="puppet_installer.txt"
-                  Action="createLine"
-                  Section="facts"
-                  Key="fact_is_puppetmaster" Value="false"
-                  Directory="FactsDotD" />
-                <IniFile Id="PuppetInstallerFactIsPuppetAgent" Name="puppet_installer.txt"
-                  Action="createLine"
-                  Section="facts"
-                  Key="fact_is_puppetagent" Value="true"
-                  Directory="FactsDotD" />
-                <IniFile Id="PuppetInstallerFactIsPuppetConsole" Name="puppet_installer.txt"
-                  Action="createLine"
-                  Section="facts"
-                  Key="fact_is_puppetconsole" Value="false"
-                  Directory="FactsDotD" />
               </Component>
             </Directory>
           </Directory>
+          <!-- mcollective is only installed for Puppet Enterprise -->
+          <?if $(var.PackageBrand) = enterprise ?>
+          <Directory Id="MCOAppData" Name="mcollective">
+            <Directory Id="MCOConfDir" Name="etc">
+              <Component Id="MCOConfDir" Permanent="yes" Guid="3E904914-17C7-138C-F5DF-280F680E067C">
+                <CreateFolder />
+              </Component>
+            </Directory>
+            <Directory Id="MCOVarDir" Name="var">
+              <Directory Id="MCOLogDir" Name="log">
+                <Component Id="MCOLogDir" Permanent="yes" Guid="F9357673-2AF2-90FA-8707-14EE37FA0657">
+                  <CreateFolder />
+                </Component>
+              </Directory>
+            </Directory>
+          </Directory>
+          <?endif ?>
           <Directory Id="PuppetAppData" Name="puppet">
             <Directory Id="PuppetConfDir" Name="etc">
               <!-- This is a permanent directory, do not remove on uninstall -->
@@ -487,6 +511,15 @@
       <ComponentRef Id="PuppetConfUnconditionalSettings" />
       <ComponentRef Id="PuppetInstallerFacts" />
       <ComponentRef Id="PuppetService" />
+
+      <!-- The MCO Parts are for Puppet Enterprise -->
+      <?if $(var.PackageBrand) = enterprise ?>
+      <ComponentGroupRef Id="mcollective" />
+      <ComponentGroupRef Id="mcollective_plugins" />
+      <ComponentRef Id="MCOConfDir" />
+      <ComponentRef Id="MCOLogDir" />
+      <ComponentRef Id="MCOService" />
+      <?endif ?>
     </Feature>
   </Product>
 </Wix>
