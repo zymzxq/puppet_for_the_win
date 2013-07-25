@@ -6,3 +6,4 @@ wix/fragments/
 stagedir/
 vendor/bundle/
 .bundle/
+Gemfile.lock
