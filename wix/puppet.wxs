@@ -5,7 +5,7 @@
   This is how to include wxi files.  We expect this file to define variables
   like the version numbers and the upgrade UUID.
   -->
-  <?include $(sys.CURRENTDIR)include/puppet.wxi ?>
+  <?include $(sys.SOURCEFILEDIR)include/puppet.wxi ?>
 
   <!--
   The Product Id should not be changed, the unique identifier enables
