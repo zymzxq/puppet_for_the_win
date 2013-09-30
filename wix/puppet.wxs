@@ -256,6 +256,18 @@
                   Directory="PuppetConfDir" />
                 <?endif ?>
               </Component>
+              <Component Id="PuppetConfWithAgentEnvironment" Permanent="yes" Guid="EC56FB39-A176-42BA-BB1C-10C8DE76AE67">
+                <Condition>PUPPET_AGENT_ENVIRONMENT</Condition>
+                <CreateFolder />
+                <!-- The agent environment setting will only be managed if the
+                     PUPPET_AGENT_ENVIRONMENT is not an empty string -->
+                <!-- Manage the entry itself -->
+                <IniFile Id="PuppetConfAgentEnvironment" Name="puppet.conf"
+                  Action="addLine"
+                  Section="main"
+                  Key="environment" Value="[PUPPET_AGENT_ENVIRONMENT]"
+                  Directory="PuppetConfDir" />
+              </Component>
               <Component Id="PuppetConfWithCertname" Permanent="yes" Guid="5D1813E1-0AEB-4965-B504-354D7F10DCEA">
                 <Condition>PUPPET_AGENT_CERTNAME</Condition>
                 <CreateFolder />
@@ -320,6 +332,7 @@
           <RegistryValue Name="InstalledFlag" Value="1" Type="integer" KeyPath="yes"/>
           <!-- Store properties for later recall during uninstall, upgrade, repair -->
           <RegistryValue Name="RememberedPuppetMasterServer" Type="string" Value="[PUPPET_MASTER_SERVER]" />
+          <RegistryValue Name="RememberedPuppetAgentEnvironment" Type="string" Value="[PUPPET_AGENT_ENVIRONMENT]" />
           <RegistryValue Name="RememberedPuppetCaServer" Type="string" Value="[PUPPET_CA_SERVER]" />
           <RegistryValue Name="RememberedPuppetAgentCertname" Type="string" Value="[PUPPET_AGENT_CERTNAME]" />
         </RegistryKey>
@@ -383,6 +396,12 @@
         Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurCommonProductNameWord)"
         Name="RememberedPuppetMasterServer" Type="raw" />
     </Property>
+    <Property Id="PUPPET_AGENT_ENVIRONMENT" Value="production">
+      <!-- Recall the property in repair, upgrade, and uninstall scenarios -->
+      <RegistrySearch Id="RecallPuppetAgentEnvironment" Root="HKLM"
+        Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurCommonProductNameWord)"
+        Name="RememberedPuppetAgentEnvironment" Type="raw" />
+    </Property>
     <Property Id="PUPPET_AGENT_CERTNAME">
       <!-- Recall the property in repair, upgrade, and uninstall scenarios -->
       <RegistrySearch Id="RecallPuppetAgentCertname" Root="HKLM"
@@ -414,6 +433,15 @@
     <CustomAction Id="SetFromCmdLinePuppetMasterServer"
       Property="PUPPET_MASTER_SERVER"
       Value="[CMDLINE_PUPPET_MASTER_SERVER]"
+      Execute="firstSequence" />
+    <!-- PUPPET_AGENT_ENVIRONMENT -->
+    <CustomAction Id="SaveCmdLinePuppetAgentEnvironment"
+      Property="[CMDLINE_PUPPET_AGENT_ENVIRONMENT]"
+      Value="[PUPPET_AGENT_ENVIRONMENT]"
+      Execute="firstSequence" />
+    <CustomAction Id="SetFromCmdLinePuppetAgentEnvironment"
+      Property="PUPPET_AGENT_ENVIRONMENT"
+      Value="[CMDLINE_PUPPET_AGENT_ENVIRONMENT]"
       Execute="firstSequence" />
     <!-- PUPPET_AGENT_CERTNAME -->
     <CustomAction Id="SaveCmdLinePuppetAgentCertname"
@@ -448,6 +476,11 @@
       <Custom Action='SetFromCmdLinePuppetMasterServer' After='AppSearch'>
         CMDLINE_PUPPET_MASTER_SERVER
       </Custom>
+      <!-- PUPPET_AGENT_ENVIRONMENT -->
+      <Custom Action='SaveCmdLinePuppetAgentEnvironment' Before='AppSearch' />
+      <Custom Action='SetFromCmdLinePuppetAgentEnvironment' After='AppSearch'>
+        CMDLINE_PUPPET_AGENT_ENVIRONMENT
+      </Custom>
       <!-- PUPPET_AGENT_CERTNAME -->
       <Custom Action='SaveCmdLinePuppetAgentCertname' Before='AppSearch' />
       <Custom Action='SetFromCmdLinePuppetAgentCertname' After='AppSearch'>
@@ -471,7 +504,12 @@
       <Custom Action='SetFromCmdLinePuppetMasterServer' After='AppSearch'>
         CMDLINE_PUPPET_MASTER_SERVER
       </Custom>
-      <!-- PUPPET_AGENT_CERTNAME -->
+      <!-- PUPPET_AGENT_ENVIRONMENT -->
+      <Custom Action='SaveCmdLinePuppetAgentEnvironment' Before='AppSearch' />
+      <Custom Action='SetFromCmdLinePuppetAgentEnvironment' After='AppSearch'>
+        CMDLINE_PUPPET_AGENT_ENVIRONMENT
+      </Custom>
+       <!-- PUPPET_AGENT_CERTNAME -->
       <Custom Action='SaveCmdLinePuppetAgentCertname' Before='AppSearch' />
       <Custom Action='SetFromCmdLinePuppetAgentCertname' After='AppSearch'>
         CMDLINE_PUPPET_AGENT_CERTNAME
@@ -506,7 +544,10 @@
 
       <!-- The PuppetConf components are conditional on PUPPET_AGENT_CERTNAME -->
       <ComponentRef Id="PuppetConfWithCertname" />
+      <!-- The PuppetConf components are conditional on PUPPET_CA_SERVER -->
       <ComponentRef Id="PuppetConfWithCaServer" />
+      <!-- The PuppetConf components are conditional on PUPPET_AGENT_ENVIRONMENT -->
+      <ComponentRef Id="PuppetConfWithAgentEnvironment" />
       <ComponentRef Id="PuppetConfUnconditionalSettings" />
       <ComponentRef Id="PuppetInstallerFacts" />
       <ComponentRef Id="PuppetService" />

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
     Copyright (c) Microsoft Corporation.  All rights reserved.
-    
+
     The use and distribution terms for this software are covered by the
     Common Public License 1.0 (http://opensource.org/licenses/cpl1.0.php)
     which can be found in the file CPL.TXT at the root of this distribution.
     By using this software in any fashion, you are agreeing to be bound by
     the terms of this license.
-    
+
     You must not remove this notice, or any other, from this software.
 -->
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
@@ -33,6 +33,13 @@
                 <Control Id="PuppetMasterServerEdit" Type="Edit" X="20" Y="150" Width="320" Height="18"
                   Text="[PUPPET_MASTER_SERVER]"
                   Property="PUPPET_MASTER_SERVER" />
+
+               <!--<Control Id="PuppetAgentEnvironmentText" Type="Text" X="20" Y="185" Width="290" Height="13" NoPrefix="yes"
+                  Text="Agent Environment:" />
+                <Control Id="PuppetAgentEnvironmentEdit" Type="Edit" X="20" Y="200" Width="320" Height="18"
+                  Text="[PUPPET_AGENT_ENVIRONMENT]"
+                  Property="PUPPET_AGENT_ENVIRONMENT" />
+                -->
 
                 <!-- Disabled in the GUI as per #12640
                 <Control Id="PuppetAgentCertNameText" Type="Text" X="20" Y="185" Width="290" Height="13" NoPrefix="yes"
