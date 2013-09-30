@@ -81,6 +81,14 @@ packages.
 (REVISIT - This is the thing we're working to.  Make sure this is accurate once
 implemented)
 
+### Note ###
+
+The version of Git included in this toolchain may be older than the one that is
+locally configured.  The initial bootstrap of Git repositories may fail due to
+newer configuration in the local `.gitconfig` file.  For example, if Git is
+configured with `simple` for the `push` configuration option, `BUILD.cmd` may fail.
+Adjust the users `.gitconfig` accordingly.   
+
 # Making Changes #
 
 The [Puppet Win Builder](http://links.puppetlabs.com/puppetwinbuilder) archive
@@ -92,7 +100,7 @@ Win](https://github.com/puppetlabs/puppet_for_the_win) repository on Github.
 
 # Continuous Integration #
 
-The `build.bat` build script _should_ work just fine with a build system like
+The `BUILD.cmd` build script _should_ work just fine with a build system like
 Jenkins.  If it does not, please let us know.
 
 # Building from Specific Repositories and Branches #
