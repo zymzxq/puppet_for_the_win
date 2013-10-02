@@ -263,7 +263,7 @@
                      PUPPET_AGENT_ENVIRONMENT is not an empty string -->
                 <!-- Manage the entry itself -->
                 <IniFile Id="PuppetConfAgentEnvironment" Name="puppet.conf"
-                  Action="addLine"
+                  Action="createLine"
                   Section="main"
                   Key="environment" Value="[PUPPET_AGENT_ENVIRONMENT]"
                   Directory="PuppetConfDir" />
