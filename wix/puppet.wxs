@@ -470,7 +470,7 @@
          remembered property values -->
     <!-- INSTALLDIR -->
     <CustomAction Id="SaveCmdLineInstallDir"
-      Property="[CMDLINE_INSTALLDIR]"
+      Property="CMDLINE_INSTALLDIR"
       Value="[INSTALLDIR]"
       Execute="firstSequence" />
     <CustomAction Id="SetFromCmdLineInstallDir"
@@ -479,7 +479,7 @@
       Execute="firstSequence" />
     <!-- PUPPET_MASTER_SERVER -->
     <CustomAction Id="SaveCmdLinePuppetMasterServer"
-      Property="[CMDLINE_PUPPET_MASTER_SERVER]"
+      Property="CMDLINE_PUPPET_MASTER_SERVER"
       Value="[PUPPET_MASTER_SERVER]"
       Execute="firstSequence" />
     <CustomAction Id="SetFromCmdLinePuppetMasterServer"
@@ -488,7 +488,7 @@
       Execute="firstSequence" />
     <!-- PUPPET_AGENT_ENVIRONMENT -->
     <CustomAction Id="SaveCmdLinePuppetAgentEnvironment"
-      Property="[CMDLINE_PUPPET_AGENT_ENVIRONMENT]"
+      Property="CMDLINE_PUPPET_AGENT_ENVIRONMENT"
       Value="[PUPPET_AGENT_ENVIRONMENT]"
       Execute="firstSequence" />
     <CustomAction Id="SetFromCmdLinePuppetAgentEnvironment"
@@ -497,7 +497,7 @@
       Execute="firstSequence" />
     <!-- PUPPET_AGENT_CERTNAME -->
     <CustomAction Id="SaveCmdLinePuppetAgentCertname"
-      Property="[CMDLINE_PUPPET_AGENT_CERTNAME]"
+      Property="CMDLINE_PUPPET_AGENT_CERTNAME"
       Value="[PUPPET_AGENT_CERTNAME]"
       Execute="firstSequence" />
     <CustomAction Id="SetFromCmdLinePuppetAgentCertname"
@@ -506,7 +506,7 @@
       Execute="firstSequence" />
     <!-- PUPPET_CA_SERVER -->
     <CustomAction Id="SaveCmdLinePuppetCaServer"
-      Property="[CMDLINE_PUPPET_CA_SERVER]"
+      Property="CMDLINE_PUPPET_CA_SERVER"
       Value="[PUPPET_CA_SERVER]"
       Execute="firstSequence" />
     <CustomAction Id="SetFromCmdLinePuppetCaServer"
@@ -515,7 +515,7 @@
       Execute="firstSequence" />
     <!-- PUPPET_AGENT_STARTUP_MODE -->
     <CustomAction Id="SaveCmdLinePuppetAgentStartupMode"
-      Property="[CMDLINE_PUPPET_AGENT_STARTUP_MODE]"
+      Property="CMDLINE_PUPPET_AGENT_STARTUP_MODE"
       Value="[PUPPET_AGENT_STARTUP_MODE]"
       Execute="firstSequence" />
     <CustomAction Id="SetFromCmdLinePuppetAgentStartupMode"
