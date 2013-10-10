@@ -142,9 +142,15 @@
               </Component>
             </Directory>
             <Directory Id='service' Name='service'>
-              <Component Id='PuppetService' Guid="639ECD7F-6186-43D5-9E1A-FC0278DBEE15">
+              <!--Seriously?... http://stackoverflow.com/questions/9419411/wix-setting-service-startup-type-using-a-property-property-not-recognized -->
+              <!-- Yep, Seriously - http://sourceforge.net/mailarchive/forum.php?thread_name=CANJN1a6gDE2tUUnP4SE05m8Ojh2q0Y8LrWOxbrF89YyJJCHn1A%40mail.gmail.com&forum_name=wix-users -->
+              <Component Id='PuppetServiceAutomatic' Guid="639ECD7F-6186-43D5-9E1A-FC0278DBEE15">
+                <Condition>
+                  <![CDATA[PUPPET_AGENT_STARTUP_MODE_INTEGER = "2"]]>
+                </Condition>
                 <File Id="PuppetDaemonBat" KeyPath="yes" Source="stagedir\puppet\ext\windows\service\daemon.bat" />
                 <File Id="PuppetDaemon" KeyPath="no" Source="stagedir\puppet\ext\windows\service\daemon.rb" />
+
                 <ServiceInstall Id="ServiceInstaller"
                   Account="LocalSystem"
                   Description="Periodically fetches and applies configurations from a Puppet master server."
@@ -156,7 +162,47 @@
                   ErrorControl="normal"
                   Vital="yes"
                   />
-                <ServiceControl Id="StartService" Start="install" Stop="both" Remove="uninstall" Name="$(var.PuppetServiceName)" Wait="yes" />
+                <ServiceControl Id="ServiceControlOptions" Start="install" Stop="both" Remove="uninstall" Name="$(var.PuppetServiceName)" Wait="yes" />
+              </Component>
+              <Component Id='PuppetServiceManual' Guid="752A5A25-9619-4EBA-AA8B-12D8C8688236">
+                <Condition>
+                  <![CDATA[PUPPET_AGENT_STARTUP_MODE_INTEGER = "3"]]>
+                </Condition>
+                <File Id="PuppetDaemonBatManual" KeyPath="yes" Source="stagedir\puppet\ext\windows\service\daemon.bat" />
+                <File Id="PuppetDaemonManual" KeyPath="no" Source="stagedir\puppet\ext\windows\service\daemon.rb" />
+
+                <ServiceInstall Id="ServiceInstallerManual"
+                  Account="LocalSystem"
+                  Description="Periodically fetches and applies configurations from a Puppet master server."
+                  DisplayName="Puppet Agent"
+                  Interactive="no"
+                  Name="$(var.PuppetServiceName)"
+                  Start="demand"
+                  Type="ownProcess"
+                  ErrorControl="normal"
+                  Vital="yes"
+                  />
+                <ServiceControl Id="ServiceControlOptionsManual" Stop="both" Remove="uninstall" Name="$(var.PuppetServiceName)" Wait="yes" />
+              </Component>
+              <Component Id='PuppetServiceDisabled' Guid="4D3A8CAF-C675-46AC-B3AD-75F00581D0DB">
+                <Condition>
+                  <![CDATA[PUPPET_AGENT_STARTUP_MODE_INTEGER = "4"]]>
+                </Condition>
+                <File Id="PuppetDaemonBatDisabled" KeyPath="yes" Source="stagedir\puppet\ext\windows\service\daemon.bat" />
+                <File Id="PuppetDaemonDisabled" KeyPath="no" Source="stagedir\puppet\ext\windows\service\daemon.rb" />
+
+                <ServiceInstall Id="ServiceInstallerDisabled"
+                  Account="LocalSystem"
+                  Description="Periodically fetches and applies configurations from a Puppet master server."
+                  DisplayName="Puppet Agent"
+                  Interactive="no"
+                  Name="$(var.PuppetServiceName)"
+                  Start="disabled"
+                  Type="ownProcess"
+                  ErrorControl="normal"
+                  Vital="yes"
+                  />
+                <ServiceControl Id="ServiceControlOptionsDisabled" Stop="both" Remove="uninstall" Name="$(var.PuppetServiceName)" Wait="yes" />
               </Component>
               <!-- mcollective is only installed for Puppet Enterprise -->
               <?if $(var.PackageBrand) = enterprise ?>
@@ -179,7 +225,7 @@
                   />
                 <ServiceControl Id="MCOStartService" Stop="both" Remove="uninstall" Name="pe-mcollective" Wait="yes" />
               </Component>
-              <?endif ?>
+              <?endif?>
             </Directory>
           </Directory>
         </Directory>
@@ -335,6 +381,7 @@
           <RegistryValue Name="RememberedPuppetAgentEnvironment" Type="string" Value="[PUPPET_AGENT_ENVIRONMENT]" />
           <RegistryValue Name="RememberedPuppetCaServer" Type="string" Value="[PUPPET_CA_SERVER]" />
           <RegistryValue Name="RememberedPuppetAgentCertname" Type="string" Value="[PUPPET_AGENT_CERTNAME]" />
+          <RegistryValue Name="RememberedPuppetAgentStartupMode" Type="string" Value="[PUPPET_AGENT_STARTUP_MODE]" />
         </RegistryKey>
         <!-- Product Specific Properties.  We keep INSTALLDIR here so as not to
              accidentally install Puppet Enterprise into Puppet's default
@@ -413,6 +460,11 @@
         Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurCommonProductNameWord)"
         Name="RememberedPuppetCaServer" Type="raw" />
     </Property>
+    <Property Id="PUPPET_AGENT_STARTUP_MODE" Value="Automatic">
+      <RegistrySearch Id="RecallPuppetAgentStartupMode" Root="HKLM"
+        Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurCommonProductNameWord)"
+        Name="RememberedPuppetAgentStartupMode" Type="raw" />
+    </Property>
 
     <!-- Custom Actions to handle command line property values that override
          remembered property values -->
@@ -461,6 +513,27 @@
       Property="PUPPET_CA_SERVER"
       Value="[CMDLINE_PUPPET_CA_SERVER]"
       Execute="firstSequence" />
+    <!-- PUPPET_AGENT_STARTUP_MODE -->
+    <CustomAction Id="SaveCmdLinePuppetAgentStartupMode"
+      Property="[CMDLINE_PUPPET_AGENT_STARTUP_MODE]"
+      Value="[PUPPET_AGENT_STARTUP_MODE]"
+      Execute="firstSequence" />
+    <CustomAction Id="SetFromCmdLinePuppetAgentStartupMode"
+      Property="PUPPET_AGENT_STARTUP_MODE"
+      Value="[CMDLINE_PUPPET_AGENT_STARTUP_MODE]"
+      Execute="firstSequence" />
+    <CustomAction Id="SetPuppetAgentStartupModeAutomatic"
+       Property="PUPPET_AGENT_STARTUP_MODE_INTEGER"
+       Value="2"
+       Execute="firstSequence"/>
+    <CustomAction Id="SetPuppetAgentStartupModeManual"
+       Property="PUPPET_AGENT_STARTUP_MODE_INTEGER"
+       Value="3"
+       Execute="firstSequence"/>
+    <CustomAction Id="SetPuppetAgentStartupModeDisabled"
+       Property="PUPPET_AGENT_STARTUP_MODE_INTEGER"
+       Value="4"
+       Execute="firstSequence"/>
 
     <!-- First, save off properties specified on the command line Second,
          restore the properties set by the command line overriding the recalled
@@ -491,7 +564,11 @@
       <Custom Action='SetFromCmdLinePuppetCaServer' After='AppSearch'>
         CMDLINE_PUPPET_CA_SERVER
       </Custom>
-
+      <!-- PUPPET_AGENT_STARTUP_MODE -->
+      <Custom Action='SaveCmdLinePuppetAgentStartupMode' Before='AppSearch' />
+      <Custom Action='SetFromCmdLinePuppetAgentStartupMode' After='AppSearch'>
+        CMDLINE_PUPPET_AGENT_STARTUP_MODE
+      </Custom>
     </InstallUISequence>
     <InstallExecuteSequence>
       <!-- INSTALLDIR -->
@@ -518,6 +595,18 @@
       <Custom Action='SaveCmdLinePuppetCaServer' Before='AppSearch' />
       <Custom Action='SetFromCmdLinePuppetCaServer' After='AppSearch'>
         CMDLINE_PUPPET_CA_SERVER
+      </Custom>
+      <!-- PUPPET_AGENT_START_MODE -->
+      <Custom Action='SaveCmdLinePuppetAgentStartupMode' Before='AppSearch' />
+      <Custom Action='SetFromCmdLinePuppetAgentStartupMode' After='AppSearch'>
+        CMDLINE_PUPPET_AGENT_STARTUP_MODE
+      </Custom>
+      <Custom Action='SetPuppetAgentStartupModeAutomatic' After='AppSearch' />
+      <Custom Action='SetPuppetAgentStartupModeManual' After='AppSearch'>
+        <![CDATA[ PUPPET_AGENT_STARTUP_MODE ~= "manual" ]]>
+      </Custom>
+      <Custom Action='SetPuppetAgentStartupModeDisabled' After='AppSearch'>
+        <![CDATA[ PUPPET_AGENT_STARTUP_MODE ~= "disabled" ]]>
       </Custom>
     </InstallExecuteSequence>
 
@@ -550,7 +639,9 @@
       <ComponentRef Id="PuppetConfWithAgentEnvironment" />
       <ComponentRef Id="PuppetConfUnconditionalSettings" />
       <ComponentRef Id="PuppetInstallerFacts" />
-      <ComponentRef Id="PuppetService" />
+      <ComponentRef Id="PuppetServiceAutomatic" />
+      <ComponentRef Id="PuppetServiceManual" />
+      <ComponentRef Id="PuppetServiceDisabled" />
 
       <!-- The MCO Parts are for Puppet Enterprise -->
       <?if $(var.PackageBrand) = enterprise ?>
