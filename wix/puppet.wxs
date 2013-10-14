@@ -16,7 +16,6 @@
   -->
   <Product Id="$(var.ProductCode)" UpgradeCode="$(var.UpgradeCode)"
     Name="$(var.OurProductName)"
-
     Language='1033'
     Codepage='1252'
     Version="$(var.ProductVersionNumber)"
@@ -29,6 +28,8 @@
       Comments="http://www.puppetlabs.com/"
       Compressed="yes"
       />
+
+    <util:Group Id="AdminGroup" Name="Administrators"/>
 
     <!-- We allow "downgrades" to support Puppet to Puppet Enterprise
          "upgrades" since these versions will not compare well.  e.g. we need
@@ -152,7 +153,8 @@
                 <File Id="PuppetDaemon" KeyPath="no" Source="stagedir\puppet\ext\windows\service\daemon.rb" />
 
                 <ServiceInstall Id="ServiceInstaller"
-                  Account="LocalSystem"
+                  Account="[PUPPET_AGENT_ACCOUNT_DOMAIN]\[PUPPET_AGENT_ACCOUNT_USER]"
+                  Password="[PUPPET_AGENT_ACCOUNT_PASSWORD]"
                   Description="Periodically fetches and applies configurations from a Puppet master server."
                   DisplayName="Puppet Agent"
                   Interactive="no"
@@ -172,7 +174,8 @@
                 <File Id="PuppetDaemonManual" KeyPath="no" Source="stagedir\puppet\ext\windows\service\daemon.rb" />
 
                 <ServiceInstall Id="ServiceInstallerManual"
-                  Account="LocalSystem"
+                  Account="[PUPPET_AGENT_ACCOUNT_DOMAIN]\[PUPPET_AGENT_ACCOUNT_USER]"
+                  Password="[PUPPET_AGENT_ACCOUNT_PASSWORD]"
                   Description="Periodically fetches and applies configurations from a Puppet master server."
                   DisplayName="Puppet Agent"
                   Interactive="no"
@@ -192,7 +195,8 @@
                 <File Id="PuppetDaemonDisabled" KeyPath="no" Source="stagedir\puppet\ext\windows\service\daemon.rb" />
 
                 <ServiceInstall Id="ServiceInstallerDisabled"
-                  Account="LocalSystem"
+                  Account="[PUPPET_AGENT_ACCOUNT_DOMAIN]\[PUPPET_AGENT_ACCOUNT_USER]"
+                  Password="[PUPPET_AGENT_ACCOUNT_PASSWORD]"
                   Description="Periodically fetches and applies configurations from a Puppet master server."
                   DisplayName="Puppet Agent"
                   Interactive="no"
@@ -362,6 +366,28 @@
           </Directory>
         </Directory>
       </Directory>
+
+      <!--
+        If puppet is configured to run as someone other than LocalSystem
+        and we are installing or upgrading, then allow the account to
+        logon as a service and add the account to the local Administrators
+        account. If the account doesn't exist, the install will fail.
+      -->
+      <Component Id="PuppetServiceUser" Guid="0CCA1CDC-CD25-43A5-BE8A-0D455C63D1BE">
+        <Condition><![CDATA[NOT Installed AND PUPPET_AGENT_ACCOUNT_USER <> "LocalSystem"]]></Condition>
+        <util:User Id="puppetServiceUser"
+                   Domain="[PUPPET_AGENT_ACCOUNT_DOMAIN]"
+                   Name="[PUPPET_AGENT_ACCOUNT_USER]"
+                   Password="[PUPPET_AGENT_ACCOUNT_PASSWORD]"
+                   LogonAsService="yes"
+                   CreateUser="no"
+                   UpdateIfExists="yes"
+                   PasswordNeverExpires="no"
+                   RemoveOnUninstall="no">
+          <util:GroupRef Id="AdminGroup"/>
+        </util:User>
+      </Component>
+
       <!-- This section inspired by: http://wix.sourceforge.net/manual-wix3/write_a_registry_entry.htm -->
       <!-- We write to $(var.OurCompanyName)\$(var.OurCommonProductNameWord)
            (Puppet Labs\CommonProduct)
@@ -424,6 +450,14 @@
 
     <!-- This property is used in the localization strings for the GUI -->
     <Property Id="VersionUIString" Value="$(var.VersionUIString)" />
+
+    <!--
+      By default, install puppet agent to run as LocalSystem. Password
+      is hidden to prevent it from appearing in msiexec log files
+    -->
+    <Property Id="PUPPET_AGENT_ACCOUNT_DOMAIN" Value="."/>
+    <Property Id="PUPPET_AGENT_ACCOUNT_USER" Value="LocalSystem"/>
+    <Property Id="PUPPET_AGENT_ACCOUNT_PASSWORD" Hidden="yes"/>
 
     <!--
       Remembered Property Pattern
@@ -620,6 +654,7 @@
       <ComponentRef Id="PuppetConfWithAgentEnvironment" />
       <ComponentRef Id="PuppetConfUnconditionalSettings" />
       <ComponentRef Id="PuppetInstallerFacts" />
+      <ComponentRef Id="PuppetServiceUser" />
       <ComponentRef Id="PuppetServiceAutomatic" />
       <ComponentRef Id="PuppetServiceManual" />
       <ComponentRef Id="PuppetServiceDisabled" />
