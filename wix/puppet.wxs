@@ -266,7 +266,7 @@
               <Component Id="PuppetConfUnconditionalSettings" Permanent="yes" Guid="B9179A60-483F-4F32-8E3F-AD632B0DEBB4">
                 <CreateFolder />
                 <IniFile Id="PuppetConfServer" Name="puppet.conf"
-                  Action="createLine"
+                  Action="addLine"
                   Section="main"
                   Key="server" Value="[PUPPET_MASTER_SERVER]"
                   Directory="PuppetConfDir" />
@@ -291,7 +291,7 @@
                   Key="archive_files" Value="true"
                   Directory="PuppetConfDir" />
                 <IniFile Id="PuppetConfArchiveFileServer" Name="puppet.conf"
-                  Action="createLine"
+                  Action="addLine"
                   Section="main"
                   Key="archive_file_server" Value="[PUPPET_MASTER_SERVER]"
                   Directory="PuppetConfDir" />
@@ -309,7 +309,7 @@
                      PUPPET_AGENT_ENVIRONMENT is not an empty string -->
                 <!-- Manage the entry itself -->
                 <IniFile Id="PuppetConfAgentEnvironment" Name="puppet.conf"
-                  Action="createLine"
+                  Action="addLine"
                   Section="main"
                   Key="environment" Value="[PUPPET_AGENT_ENVIRONMENT]"
                   Directory="PuppetConfDir" />
@@ -321,7 +321,7 @@
                      PUPPET_AGENT_CERTNAME is not an empty string -->
                 <!-- Manage the entry itself -->
                 <IniFile Id="PuppetConfCertname" Name="puppet.conf"
-                  Action="createLine"
+                  Action="addLine"
                   Section="main"
                   Key="certname" Value="[PUPPET_AGENT_CERTNAME]"
                   Directory="PuppetConfDir" />
@@ -332,7 +332,7 @@
                 <!-- The certname setting will only be managed if the
                      PUPPET_CA_SERVER is not an empty string -->
                 <IniFile Id="PuppetConfCaServer" Name="puppet.conf"
-                  Action="createLine"
+                  Action="addLine"
                   Section="main"
                   Key="ca_server" Value="[PUPPET_CA_SERVER]"
                   Directory="PuppetConfDir" />
