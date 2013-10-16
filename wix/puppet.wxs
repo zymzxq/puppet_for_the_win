@@ -382,7 +382,6 @@
                    LogonAsService="yes"
                    CreateUser="no"
                    UpdateIfExists="yes"
-                   PasswordNeverExpires="no"
                    RemoveOnUninstall="no">
           <util:GroupRef Id="AdminGroup"/>
         </util:User>
