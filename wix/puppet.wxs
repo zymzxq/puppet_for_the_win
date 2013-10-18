@@ -458,6 +458,11 @@
     <Property Id="PUPPET_AGENT_ACCOUNT_USER" Value="LocalSystem"/>
     <Property Id="PUPPET_AGENT_ACCOUNT_PASSWORD" Hidden="yes"/>
 
+    <!-- '.' is not a valid domain, set to local computer instead in BOTH sequences -->
+    <SetProperty Id="PUPPET_AGENT_ACCOUNT_DOMAIN" Value="[ComputerName]" After="AppSearch" Sequence="both" >
+      PUPPET_AGENT_ACCOUNT_DOMAIN = "."
+    </SetProperty>
+
     <!--
       Remembered Property Pattern
       http://robmensching.com/blog/posts/2010/5/2/The-WiX-toolsets-Remember-Property-pattern
