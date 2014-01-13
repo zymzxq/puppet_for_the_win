@@ -37,7 +37,7 @@ def variable_define_flags
   # [0-255].[0-255].[0-65535] See:
   # http://stackoverflow.com/questions/9312221/msi-version-numbers
   # This regular expression focuses on the major numbers and discards things like "rc1" in the string
-  version_regexps = [
+  @version_regexps = [
     /(\d+)[^.]*?\.(\d+)[^.]*?\.(\d+)[^.]*?-(\d+)-(.*)/,
     /(\d+)[^.]*?\.(\d+)[^.]*?\.(\d+)[^.]*?\.(\d+)/,
     /(\d+)[^.]*?\.(\d+)[^.]*?\.(\d+)[^.]*?/,
@@ -50,7 +50,7 @@ def variable_define_flags
     flags['MCODescTag']  = describe 'downloads/mcollective'
     # The Package Version components for PE
     match_data = nil
-    version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
+    @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
       match_data = ENV['PE_VERSION_STRING'].match re
     end
     flags['MajorVersion'] = match_data[1]
@@ -62,7 +62,7 @@ def variable_define_flags
     msg = "Could not parse git-describe annotated tag for Puppet"
     # The Package Version components for FOSS
     match_data = nil
-    version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
+    @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
       match_data = flags['PuppetDescTag'].match re
     end
     flags['MajorVersion'] = match_data[1]
@@ -249,7 +249,7 @@ namespace :windows do
           end
         elsif product == "mcollective"
           msg = 'Could not parse git-describe annotated tag for MCollective'
-          version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
+          @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
             match_data = flags['MCODescTag'].match re
           end
           mco_version="#{match_data[1]}.#{match_data[2]}.#{match_data[3]}." << (match_data[4] || 0).to_s
