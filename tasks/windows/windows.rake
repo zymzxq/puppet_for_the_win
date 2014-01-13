@@ -233,34 +233,35 @@ namespace :windows do
   task :version do
     if ENV['PE_VERSION_STRING']
       ["puppet", "mcollective"].each do | product |
-      if File.exists?("stagedir/#{product}/lib/#{product}/version.rb")
-        version_file = "stagedir/#{product}/lib/#{product}/version.rb"
-      elsif File.exists?("stagedir/#{product}/lib/#{product}.rb")
-        version_file = "stagedir/#{product}/lib/#{product}.rb"
-      else
-        raise ArgumentError, "Could not patch #{product} version, no version file found"
-      end
+        if File.exists?("stagedir/#{product}/lib/#{product}/version.rb")
+          version_file = "stagedir/#{product}/lib/#{product}/version.rb"
+        elsif File.exists?("stagedir/#{product}/lib/#{product}.rb")
+          version_file = "stagedir/#{product}/lib/#{product}.rb"
+        else
+          raise ArgumentError, "Could not patch #{product} version, no version file found"
+        end
 
-      content = File.open(version_file, 'rb') { |f| f.read }
+        content = File.open(version_file, 'rb') { |f| f.read }
       
-      if product == "puppet"
-        modified = content.gsub(/(PUPPETVERSION\s*=\s*)(['"])(.*?)(['"])/) do |match|
-          "#{$1}#{$2}#{$3} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{$2}"
+        if product == "puppet"
+          modified = content.gsub(/(PUPPETVERSION\s*=\s*)(['"])(.*?)(['"])/) do |match|
+            "#{$1}#{$2}#{$3} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{$2}"
+          end
+        elsif product == "mcollective"
+          msg = 'Could not parse git-describe annotated tag for MCollective'
+          version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
+            match_data = flags['MCODescTag'].match re
+          end
+          mco_version="#{match_data[1]}.#{match_data[2]}.#{match_data[3]}." << (match_data[4] || 0).to_s
+          modified = content.gsub("@DEVELOPMENT_VERSION@", "#{mco_version}")
         end
-      elsif product == "mcollective"
-        msg = 'Could not parse git-describe annotated tag for MCollective'
-        version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
-          match_data = flags['MCODescTag'].match re
+
+        if content == modified
+          raise ArgumentError, "(#12975) Could not patch #{product}.rb.  Check the regular expression around this line in the backtrace against #{version_file}"
         end
-        mco_version="#{match_data[1]}.#{match_data[2]}.#{match_data[3]}." << (match_data[4] || 0).to_s
-        modified = content.gsub("@DEVELOPMENT_VERSION@", "#{mco_version}")
-      end
 
-      if content == modified
-        raise ArgumentError, "(#12975) Could not patch #{product}.rb.  Check the regular expression around this line in the backtrace against #{version_file}"
+        File.open(version_file, "wb") { |f| f.write(modified) }
       end
-
-      File.open(version_file, "wb") { |f| f.write(modified) }
     end
   end
 
