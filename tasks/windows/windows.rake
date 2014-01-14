@@ -249,8 +249,9 @@ namespace :windows do
           end
         elsif product == "mcollective"
           msg = 'Could not parse git-describe annotated tag for MCollective'
+          match_data=[]
           @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
-            match_data = flags['MCODescTag'].match re
+            match_data = (describe 'downloads/mcollective').match re
           end
           mco_version="#{match_data[1]}.#{match_data[2]}.#{match_data[3]}." << (match_data[4] || 0).to_s
           modified = content.gsub("@DEVELOPMENT_VERSION@", "#{mco_version}")
