@@ -242,7 +242,7 @@ namespace :windows do
         end
 
         content = File.open(version_file, 'rb') { |f| f.read }
-      
+
         if product == "puppet"
           modified = content.gsub(/(PUPPETVERSION\s*=\s*)(['"])([.\d]*)(.*?)(['"])/) do |match|
             pre         = $1
