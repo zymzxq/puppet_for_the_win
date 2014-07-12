@@ -244,8 +244,24 @@ namespace :windows do
         content = File.open(version_file, 'rb') { |f| f.read }
       
         if product == "puppet"
-          modified = content.gsub(/(PUPPETVERSION\s*=\s*)(['"])(.*?)(['"])/) do |match|
-            "#{$1}#{$2}#{$3} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{$2}"
+          modified = content.gsub(/(PUPPETVERSION\s*=\s*)(['"])([.\d]*)(.*?)(['"])/) do |match|
+            pre         = $1
+            start_quote = $2
+            version     = $3
+            pe_version  = $4
+            end_quote   = $5
+
+            modified =
+              if pe_version =~ /\(Puppet Enterprise.*\)/
+                # rewrite as one line:
+                #   PUPPETVERSION = "3.6.2 (Puppet Enterprise 3.3.0)"
+                "#{pre}#{start_quote}#{version} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{end_quote}"
+              else
+                # rewrite as two lines:
+                #   PEVERSION = '3.3.0'
+                #   PUPPETVERSION = "3.6.2 (Puppet Enterprise 3.3.0)"
+                "PEVERSION = #{start_quote}#{ENV['PE_VERSION_STRING']}#{end_quote}\n    #{pre}#{start_quote}#{version} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{end_quote}"
+              end
           end
         elsif product == "mcollective"
           msg = 'Could not parse git-describe annotated tag for MCollective'
