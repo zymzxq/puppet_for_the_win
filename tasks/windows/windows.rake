@@ -100,14 +100,18 @@ def candle(wxs_file, flags=[])
     flags_string << " -dBUILD_UI_ONLY"
   end
   flags_string << " -dlicenseRtf=conf/windows/stage/misc/LICENSE.rtf"
+  flags_string << " -dPlatform=#{ENV['Platform']}"
   flags_string << " " << variable_define_flags
   Dir.chdir File.join(TOPDIR, File.dirname(wxs_file)) do
-    sh "candle -ext WiXUtilExtension -ext WixUIExtension -arch x86 #{flags_string} \"#{File.basename(wxs_file)}\""
+    sh "candle -ext WiXUtilExtension -ext WixUIExtension -arch #{ENV['Platform']} #{flags_string} \"#{File.basename(wxs_file)}\""
   end
 end
 
 # Produce a wxs file from a directory in the stagedir
 # e.g. heat('wxs/fragments/foo.wxs', 'stagedir/sys/foo')
+# note that heat doesn't have a switch for architecture and hence we don't get
+# <Component win64="yes" />, however candle.exe provides this capability as long
+# as the Platform variable is set for the Product in the .wxs file
 def heat(wxs_file, stage_dir)
   Dir.chdir TOPDIR do
     cg_name = File.basename(wxs_file.ext(''))
@@ -135,6 +139,7 @@ namespace :windows do
 
   CONFIG = YAML.load_file(ENV["config"] || "config.yaml")
   APPS = CONFIG[:repos]
+  ENV['Platform'] = ENV['Platform'] || 'x86'
 
   task :clean_downloads => 'downloads' do
     FileList["downloads/*"].each do |repo|
