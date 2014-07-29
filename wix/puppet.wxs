@@ -393,7 +393,7 @@
            (Puppet Labs\CommonProduct)
            in order to restore the PUPPET_MASTER_SERVER property when replacing
            Puppet FOSS with Puppet Enterprise. -->
-      <Component Id="RegistryEntries" Guid="68F5D91C-49C8-43F7-940A-481007689E79">
+      <Component Id="RegistryEntries" Guid="68F5D91C-49C8-43F7-940A-481007689E79" Win64="no">
         <RegistryKey
           Root="HKLM"
           Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurCommonProductNameWord)"
@@ -409,6 +409,15 @@
           <RegistryValue Name="RememberedPuppetAgentCertname" Type="string" Value="[PUPPET_AGENT_CERTNAME]" />
           <RegistryValue Name="RememberedPuppetAgentStartupMode" Type="string" Value="[PUPPET_AGENT_STARTUP_MODE]" />
         </RegistryKey>
+        <RegistryKey
+            Root="HKLM"
+            Key="SYSTEM\CurrentControlSet\services\eventlog\Application\Puppet"
+            Action="createAndRemoveOnUninstall">
+          <RegistryValue Type="string" Name="EventMessageFile" Value="[INSTALLDIR]puppet\ext\windows\eventlog\puppetres.dll"/>
+          <RegistryValue Type="integer" Name="TypesSupported" Value="7"/>
+        </RegistryKey>
+      </Component>
+      <Component Id="RegistryEntriesArchitectureDependent" Guid="E6D5AF4F-ACC4-4D11-AFCE-299A9ED2152C" Win64="$(var.Win64)">
         <!-- Product Specific Properties.  We keep INSTALLDIR here so as not to
              accidentally install Puppet Enterprise into Puppet's default
              install directory and vice-versa. -->
@@ -419,14 +428,7 @@
           <!-- This is the default (aka 'unnamed') key value of this path -->
           <RegistryValue Type="integer" Value="0"/>
           <!-- RememberedInstallDir -->
-          <RegistryValue Name="RememberedInstallDir" Type="string" Value="[INSTALLDIR]" />
-        </RegistryKey>
-        <RegistryKey
-            Root="HKLM"
-            Key="SYSTEM\CurrentControlSet\services\eventlog\Application\Puppet"
-            Action="createAndRemoveOnUninstall">
-          <RegistryValue Type="string" Name="EventMessageFile" Value="[INSTALLDIR]puppet\ext\windows\eventlog\puppetres.dll"/>
-          <RegistryValue Type="integer" Name="TypesSupported" Value="7"/>
+          <RegistryValue Name="RememberedInstallDir" Type="string" Value="[INSTALLDIR]"  KeyPath="yes" />
         </RegistryKey>
       </Component>
     </Directory>
@@ -463,11 +465,14 @@
       Remembered Property Pattern
       http://robmensching.com/blog/posts/2010/5/2/The-WiX-toolsets-Remember-Property-pattern
       -->
+    <!-- Registry settings, remembered install dir is dependent on x86/64.
+         Everything else stays with x86 so both installer types can see it
+      -->
     <Property Id="INSTALLDIR">
       <!-- Recall the property in repair, upgrade, and uninstall scenarios -->
       <RegistrySearch Id="RecallInstallDir" Root="HKLM"
         Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurProductNameWord)"
-        Name="RememberedInstallDir" Type="raw" Win64="yes" />
+        Name="RememberedInstallDir" Type="raw" Win64="$(var.Win64)" />
     </Property>
     <!-- Note the static default value of "puppet".  This will be overriden by
          the command line. -->
@@ -673,6 +678,7 @@
     -->
     <Feature Id="$(var.OurProductNameWord)Runtime" Title="$(var.OurProductName) Runtime" Level="1">
       <ComponentRef Id="RegistryEntries" />
+      <ComponentRef Id="RegistryEntriesArchitectureDependent" />
       <ComponentRef Id="PuppetVarDir" />
       <ComponentRef Id="HieraVarDir" />
       <ComponentRef Id="HieraEtcDir" />
