@@ -291,9 +291,11 @@ namespace :windows do
     OBJS = FileList['wix/**/*.wixobj']
 
     out = ENV['BRANDING'] =~ /enterprise/i ? 'puppetenterprise' : 'puppet'
+    out = "#{out}-#{ENV['ARCH']}" if ENV['ARCH'] == 'x64'
+    msi_file_name =  ENV['PKG_FILE_NAME'] || "#{out}.msi"
 
     Dir.chdir TOPDIR do
-      sh "light -ext WiXUtilExtension -ext WixUIExtension -cultures:en-us -loc wix/localization/puppet_en-us.wxl -out pkg/#{out}.msi #{OBJS}"
+      sh "light -ext WiXUtilExtension -ext WixUIExtension -cultures:en-us -loc wix/localization/puppet_en-us.wxl -out pkg/#{msi_file_name} #{OBJS}"
     end
   end
 
@@ -307,9 +309,10 @@ namespace :windows do
   # install the Windows SDK to get signtool.exe.  puppetwinbuilder.zip's
   # setup_env.bat should have added it to the PATH already.
   task :sign_pe => 'pkg' do |t|
+    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppetenterprise.msi'
     Dir.chdir TOPDIR do
       Dir.chdir "pkg" do
-        sh 'signtool sign /d "Puppet Enterprise" /du "http://www.puppetlabs.com" /n "Puppet Labs" /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppetenterprise.msi'
+        sh "signtool sign /d \"Puppet Enterprise\" /du \"http://www.puppetlabs.com\" /n \"Puppet Labs\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{msi_file_name}"
       end
     end
   end
@@ -319,9 +322,10 @@ namespace :windows do
   # install the Windows SDK to get signtool.exe.  puppetwinbuilder.zip's
   # setup_env.bat should have added it to the PATH already.
   task :sign_foss => 'pkg' do |t|
+    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet.msi'
     Dir.chdir TOPDIR do
       Dir.chdir "pkg" do
-        sh 'signtool sign /d "Puppet" /du "http://www.puppetlabs.com" /n "Puppet Labs" /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppet.msi'
+        sh "signtool sign /d \"Puppet\" /du \"http://www.puppetlabs.com\" /n \"Puppet Labs\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{msi_file_name}"
       end
     end
   end
@@ -363,16 +367,18 @@ namespace :windows do
   end
 
   desc 'Install the MSI using msiexec'
-  task :install => 'pkg/puppet.msi' do |t|
+  task :install => 'pkg' do |t|
+    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet.msi'
     Dir.chdir "pkg" do
-      sh 'msiexec /q /l*v install.txt /i puppet.msi INSTALLDIR="C:\puppet" PUPPET_MASTER_SERVER="puppetmaster" PUPPET_AGENT_CERTNAME="windows.vm"'
+      sh "msiexec /q /l*v install.txt /i #{msi_file_name} INSTALLDIR=\"C:\\puppet\" PUPPET_MASTER_SERVER=\"puppetmaster\" PUPPET_AGENT_CERTNAME=\"windows.vm\""
     end
   end
 
   desc 'Uninstall the MSI using msiexec'
-  task :uninstall => 'pkg/puppet.msi' do |t|
+  task :uninstall => 'pkg' do |t|
+    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet.msi'
     Dir.chdir "pkg" do
-      sh 'msiexec /qn /l*v uninstall.txt /x puppet.msi'
+      sh "msiexec /qn /l*v uninstall.txt /x #{msi_file_name}"
     end
   end
 end
