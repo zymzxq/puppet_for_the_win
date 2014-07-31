@@ -100,10 +100,10 @@ def candle(wxs_file, flags=[])
     flags_string << " -dBUILD_UI_ONLY"
   end
   flags_string << " -dlicenseRtf=conf/windows/stage/misc/LICENSE.rtf"
-  flags_string << " -dPlatform=#{ENV['Platform']}"
+  flags_string << " -dPlatform=#{ENV['ARCH']}"
   flags_string << " " << variable_define_flags
   Dir.chdir File.join(TOPDIR, File.dirname(wxs_file)) do
-    sh "candle -ext WiXUtilExtension -ext WixUIExtension -arch #{ENV['Platform']} #{flags_string} \"#{File.basename(wxs_file)}\""
+    sh "candle -ext WiXUtilExtension -ext WixUIExtension -arch #{ENV['ARCH']} #{flags_string} \"#{File.basename(wxs_file)}\""
   end
 end
 
@@ -139,7 +139,7 @@ namespace :windows do
 
   CONFIG = YAML.load_file(ENV["config"] || "config.yaml")
   APPS = CONFIG[:repos]
-  ENV['Platform'] = ENV['Platform'] || 'x86'
+  ENV['ARCH'] = ENV['ARCH'] || 'x86'
 
   task :clean_downloads => 'downloads' do
     FileList["downloads/*"].each do |repo|
