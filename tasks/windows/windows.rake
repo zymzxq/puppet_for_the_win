@@ -100,14 +100,18 @@ def candle(wxs_file, flags=[])
     flags_string << " -dBUILD_UI_ONLY"
   end
   flags_string << " -dlicenseRtf=conf/windows/stage/misc/LICENSE.rtf"
+  flags_string << " -dPlatform=#{ENV['ARCH']}"
   flags_string << " " << variable_define_flags
   Dir.chdir File.join(TOPDIR, File.dirname(wxs_file)) do
-    sh "candle -ext WiXUtilExtension -ext WixUIExtension -arch x86 #{flags_string} \"#{File.basename(wxs_file)}\""
+    sh "candle -ext WiXUtilExtension -ext WixUIExtension -arch #{ENV['ARCH']} #{flags_string} \"#{File.basename(wxs_file)}\""
   end
 end
 
 # Produce a wxs file from a directory in the stagedir
 # e.g. heat('wxs/fragments/foo.wxs', 'stagedir/sys/foo')
+# note that heat doesn't have a switch for architecture and hence we don't get
+# <Component win64="yes" />, however candle.exe provides this capability as long
+# as the Platform variable is set for the Product in the .wxs file
 def heat(wxs_file, stage_dir)
   Dir.chdir TOPDIR do
     cg_name = File.basename(wxs_file.ext(''))
@@ -135,6 +139,7 @@ namespace :windows do
 
   CONFIG = YAML.load_file(ENV["config"] || "config.yaml")
   APPS = CONFIG[:repos]
+  ENV['ARCH'] = ENV['ARCH'] || 'x86'
 
   task :clean_downloads => 'downloads' do
     FileList["downloads/*"].each do |repo|
@@ -286,9 +291,11 @@ namespace :windows do
     OBJS = FileList['wix/**/*.wixobj']
 
     out = ENV['BRANDING'] =~ /enterprise/i ? 'puppetenterprise' : 'puppet'
+    out = "#{out}-#{ENV['ARCH']}" if ENV['ARCH'] == 'x64'
+    msi_file_name =  ENV['PKG_FILE_NAME'] || "#{out}.msi"
 
     Dir.chdir TOPDIR do
-      sh "light -ext WiXUtilExtension -ext WixUIExtension -cultures:en-us -loc wix/localization/puppet_en-us.wxl -out pkg/#{out}.msi #{OBJS}"
+      sh "light -ext WiXUtilExtension -ext WixUIExtension -cultures:en-us -loc wix/localization/puppet_en-us.wxl -out pkg/#{msi_file_name} #{OBJS}"
     end
   end
 
@@ -302,9 +309,10 @@ namespace :windows do
   # install the Windows SDK to get signtool.exe.  puppetwinbuilder.zip's
   # setup_env.bat should have added it to the PATH already.
   task :sign_pe => 'pkg' do |t|
+    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppetenterprise.msi'
     Dir.chdir TOPDIR do
       Dir.chdir "pkg" do
-        sh 'signtool sign /d "Puppet Enterprise" /du "http://www.puppetlabs.com" /n "Puppet Labs" /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppetenterprise.msi'
+        sh "signtool sign /d \"Puppet Enterprise\" /du \"http://www.puppetlabs.com\" /n \"Puppet Labs\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{msi_file_name}"
       end
     end
   end
@@ -314,9 +322,10 @@ namespace :windows do
   # install the Windows SDK to get signtool.exe.  puppetwinbuilder.zip's
   # setup_env.bat should have added it to the PATH already.
   task :sign_foss => 'pkg' do |t|
+    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet.msi'
     Dir.chdir TOPDIR do
       Dir.chdir "pkg" do
-        sh 'signtool sign /d "Puppet" /du "http://www.puppetlabs.com" /n "Puppet Labs" /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppet.msi'
+        sh "signtool sign /d \"Puppet\" /du \"http://www.puppetlabs.com\" /n \"Puppet Labs\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{msi_file_name}"
       end
     end
   end
@@ -358,16 +367,18 @@ namespace :windows do
   end
 
   desc 'Install the MSI using msiexec'
-  task :install => 'pkg/puppet.msi' do |t|
+  task :install => 'pkg' do |t|
+    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet.msi'
     Dir.chdir "pkg" do
-      sh 'msiexec /q /l*v install.txt /i puppet.msi INSTALLDIR="C:\puppet" PUPPET_MASTER_SERVER="puppetmaster" PUPPET_AGENT_CERTNAME="windows.vm"'
+      sh "msiexec /q /l*v install.txt /i #{msi_file_name} INSTALLDIR=\"C:\\puppet\" PUPPET_MASTER_SERVER=\"puppetmaster\" PUPPET_AGENT_CERTNAME=\"windows.vm\""
     end
   end
 
   desc 'Uninstall the MSI using msiexec'
-  task :uninstall => 'pkg/puppet.msi' do |t|
+  task :uninstall => 'pkg' do |t|
+    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet.msi'
     Dir.chdir "pkg" do
-      sh 'msiexec /qn /l*v uninstall.txt /x puppet.msi'
+      sh "msiexec /qn /l*v uninstall.txt /x #{msi_file_name}"
     end
   end
 end

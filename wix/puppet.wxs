@@ -15,7 +15,7 @@
   Name is made of localized product name and version number.
   -->
   <Product Id="$(var.ProductCode)" UpgradeCode="$(var.UpgradeCode)"
-    Name="$(var.OurProductName)"
+    Name="$(var.OurProductName)$(var.OurProductPlatformText)"
     Language='1033'
     Codepage='1252'
     Version="$(var.ProductVersionNumber)"
@@ -24,9 +24,10 @@
     <Package
       InstallerVersion='300'
       InstallScope="perMachine"
-      Description="$(var.OurProductName) Installer"
+      Description="$(var.OurProductName)$(var.OurProductPlatformText) Installer"
       Comments="http://www.puppetlabs.com/"
       Compressed="yes"
+      Platform="$(var.Platform)"
       />
 
     <util:Group Id="AdminGroup" Name="Administrators"/>
@@ -64,7 +65,7 @@
       <!-- The start menu shortcuts -->
       <Directory Id='ProgramMenuFolder'>
         <Directory Id='PuppetShortcutDir' Name="$(var.OurProductName)">
-          <Component Id="PuppetShortcuts" Guid="0B69C3FF-8967-4F8A-AC71-0EAE34E91ACC">
+          <Component Id="PuppetShortcuts" Guid="0B69C3FF-8967-4F8A-AC71-0EAE34E91ACC" Win64="$(var.Win64)">
             <Shortcut Id="PuppetShortcut"
               Name="Run Puppet Agent"
               Description="Run Puppet in an interactive command window"
@@ -96,7 +97,7 @@
               Name="installed" Value="1" Type="integer" KeyPath="yes" />
           </Component>
           <Directory Id='PuppetShortcutDocumentationDir' Name="Documentation">
-            <Component Id="PuppetDocumentationShortcuts" Guid="651178BC-76D8-4574-B97B-B132064EE2FB">
+            <Component Id="PuppetDocumentationShortcuts" Guid="651178BC-76D8-4574-B97B-B132064EE2FB" Win64="$(var.Win64)">
             <CreateFolder />
               <IniFile Id="PuppetSupportURL" Name="Get $(var.OurProductName) Support.url"
                 Action="addLine"
@@ -131,13 +132,13 @@
         </Directory>
       </Directory>
       <!-- The application itself -->
-      <Directory Id='ProgramFilesFolder' >
+      <Directory Id="$(var.PlatformProgramFilesFolder)" >
         <Directory Id='PuppetLabs' Name="$(var.OurCompanyName)">
           <Directory Id='INSTALLDIR' Name="$(var.OurProductName)">
             <Directory Id='sys' Name='sys'>
             </Directory>
             <Directory Id='bin' Name='bin'>
-              <Component Id="PuppetInstallDirBinToPath" Guid="F46FA9A8-43A2-4379-8933-EAAE2D0E5D72">
+              <Component Id="PuppetInstallDirBinToPath" Guid="F46FA9A8-43A2-4379-8933-EAAE2D0E5D72" Win64="$(var.Win64)">
                 <CreateFolder />
                 <Environment Id="PuppetBinPath" Name="PATH" Value="[INSTALLDIR]bin" Permanent="no" Part="last" Action="set" System="yes" />
               </Component>
@@ -145,7 +146,7 @@
             <Directory Id='service' Name='service'>
               <!--Seriously?... http://stackoverflow.com/questions/9419411/wix-setting-service-startup-type-using-a-property-property-not-recognized -->
               <!-- Yep, Seriously - http://sourceforge.net/mailarchive/forum.php?thread_name=CANJN1a6gDE2tUUnP4SE05m8Ojh2q0Y8LrWOxbrF89YyJJCHn1A%40mail.gmail.com&forum_name=wix-users -->
-              <Component Id='PuppetServiceAutomatic' Guid="639ECD7F-6186-43D5-9E1A-FC0278DBEE15">
+              <Component Id='PuppetServiceAutomatic' Guid="639ECD7F-6186-43D5-9E1A-FC0278DBEE15" Win64="$(var.Win64)">
                 <Condition>
                   <![CDATA[ (PUPPET_AGENT_STARTUP_MODE ~<> "manual") AND (PUPPET_AGENT_STARTUP_MODE ~<> "disabled") ]]>
                 </Condition>
@@ -166,7 +167,7 @@
                   />
                 <ServiceControl Id="ServiceControlOptions" Start="install" Stop="both" Remove="uninstall" Name="$(var.PuppetServiceName)" Wait="yes" />
               </Component>
-              <Component Id='PuppetServiceManual' Guid="752A5A25-9619-4EBA-AA8B-12D8C8688236">
+              <Component Id='PuppetServiceManual' Guid="752A5A25-9619-4EBA-AA8B-12D8C8688236" Win64="$(var.Win64)">
                 <Condition>
                   <![CDATA[PUPPET_AGENT_STARTUP_MODE ~= "manual"]]>
                 </Condition>
@@ -187,7 +188,7 @@
                   />
                 <ServiceControl Id="ServiceControlOptionsManual" Stop="both" Remove="uninstall" Name="$(var.PuppetServiceName)" Wait="yes" />
               </Component>
-              <Component Id='PuppetServiceDisabled' Guid="4D3A8CAF-C675-46AC-B3AD-75F00581D0DB">
+              <Component Id='PuppetServiceDisabled' Guid="4D3A8CAF-C675-46AC-B3AD-75F00581D0DB" Win64="$(var.Win64)">
                 <Condition>
                   <![CDATA[PUPPET_AGENT_STARTUP_MODE ~= "disabled"]]>
                 </Condition>
@@ -210,7 +211,7 @@
               </Component>
               <!-- mcollective is only installed for Puppet Enterprise -->
               <?if $(var.PackageBrand) = enterprise ?>
-              <Component Id='MCOService' Guid="7601FCEA-90B3-CC69-6A69-4087FBC7292D">
+              <Component Id='MCOService' Guid="7601FCEA-90B3-CC69-6A69-4087FBC7292D" Win64="$(var.Win64)">
                 <File Id="MCODaemonBat" KeyPath="yes" Source="stagedir\mcollective\ext\windows\daemon.bat" Name="mco_daemon.bat" />
                 <!-- This service is installed with start set to demand because
                 it won't be correctly configured to start right away. The
@@ -373,7 +374,7 @@
         logon as a service and add the account to the local Administrators
         account. If the account doesn't exist, the install will fail.
       -->
-      <Component Id="PuppetServiceUser" Guid="0CCA1CDC-CD25-43A5-BE8A-0D455C63D1BE">
+      <Component Id="PuppetServiceUser" Guid="0CCA1CDC-CD25-43A5-BE8A-0D455C63D1BE" Win64="$(var.Win64)">
         <Condition><![CDATA[NOT Installed AND PUPPET_AGENT_ACCOUNT_USER <> "LocalSystem"]]></Condition>
         <util:User Id="puppetServiceUser"
                    Domain="[PUPPET_AGENT_ACCOUNT_DOMAIN]"
@@ -392,7 +393,7 @@
            (Puppet Labs\CommonProduct)
            in order to restore the PUPPET_MASTER_SERVER property when replacing
            Puppet FOSS with Puppet Enterprise. -->
-      <Component Id="RegistryEntries" Guid="68F5D91C-49C8-43F7-940A-481007689E79">
+      <Component Id="RegistryEntries" Guid="68F5D91C-49C8-43F7-940A-481007689E79" Win64="no">
         <RegistryKey
           Root="HKLM"
           Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurCommonProductNameWord)"
@@ -408,6 +409,15 @@
           <RegistryValue Name="RememberedPuppetAgentCertname" Type="string" Value="[PUPPET_AGENT_CERTNAME]" />
           <RegistryValue Name="RememberedPuppetAgentStartupMode" Type="string" Value="[PUPPET_AGENT_STARTUP_MODE]" />
         </RegistryKey>
+        <RegistryKey
+            Root="HKLM"
+            Key="SYSTEM\CurrentControlSet\services\eventlog\Application\Puppet"
+            Action="createAndRemoveOnUninstall">
+          <RegistryValue Type="string" Name="EventMessageFile" Value="[INSTALLDIR]puppet\ext\windows\eventlog\puppetres.dll"/>
+          <RegistryValue Type="integer" Name="TypesSupported" Value="7"/>
+        </RegistryKey>
+      </Component>
+      <Component Id="RegistryEntriesArchitectureDependent" Guid="E6D5AF4F-ACC4-4D11-AFCE-299A9ED2152C" Win64="$(var.Win64)">
         <!-- Product Specific Properties.  We keep INSTALLDIR here so as not to
              accidentally install Puppet Enterprise into Puppet's default
              install directory and vice-versa. -->
@@ -418,14 +428,7 @@
           <!-- This is the default (aka 'unnamed') key value of this path -->
           <RegistryValue Type="integer" Value="0"/>
           <!-- RememberedInstallDir -->
-          <RegistryValue Name="RememberedInstallDir" Type="string" Value="[INSTALLDIR]" />
-        </RegistryKey>
-        <RegistryKey
-            Root="HKLM"
-            Key="SYSTEM\CurrentControlSet\services\eventlog\Application\Puppet"
-            Action="createAndRemoveOnUninstall">
-          <RegistryValue Type="string" Name="EventMessageFile" Value="[INSTALLDIR]puppet\ext\windows\eventlog\puppetres.dll"/>
-          <RegistryValue Type="integer" Name="TypesSupported" Value="7"/>
+          <RegistryValue Name="RememberedInstallDir" Type="string" Value="[INSTALLDIR]"  KeyPath="yes" />
         </RegistryKey>
       </Component>
     </Directory>
@@ -446,6 +449,8 @@
     <Icon Id="$(var.OurCompanyNameWord).ico" SourceFile="conf\windows\stage\misc\puppetlabs.ico"/>
     <Property Id="ARPPRODUCTICON" Value="$(var.OurCompanyNameWord).ico" />
     <Property Id="ARPHELPLINK" Value="$(var.HelpLink)" />
+    <!-- Save destination folder in Add/Remove programs (ARP) registry key -->
+    <SetProperty Id="ARPINSTALLLOCATION" Value="[INSTALLDIR]" After="CostFinalize" />
 
     <!-- This property is used in the localization strings for the GUI -->
     <Property Id="VersionUIString" Value="$(var.VersionUIString)" />
@@ -462,11 +467,14 @@
       Remembered Property Pattern
       http://robmensching.com/blog/posts/2010/5/2/The-WiX-toolsets-Remember-Property-pattern
       -->
+    <!-- Registry settings, remembered install dir is dependent on x86/64.
+         Everything else stays with x86 so both installer types can see it
+      -->
     <Property Id="INSTALLDIR">
       <!-- Recall the property in repair, upgrade, and uninstall scenarios -->
       <RegistrySearch Id="RecallInstallDir" Root="HKLM"
         Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurProductNameWord)"
-        Name="RememberedInstallDir" Type="raw" />
+        Name="RememberedInstallDir" Type="raw" Win64="$(var.Win64)" />
     </Property>
     <!-- Note the static default value of "puppet".  This will be overriden by
          the command line. -->
@@ -474,29 +482,29 @@
       <!-- Recall the property in repair, upgrade, and uninstall scenarios -->
       <RegistrySearch Id="RecallPuppetMasterServer" Root="HKLM"
         Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurCommonProductNameWord)"
-        Name="RememberedPuppetMasterServer" Type="raw" />
+        Name="RememberedPuppetMasterServer" Type="raw" Win64="no" />
     </Property>
     <Property Id="PUPPET_AGENT_ENVIRONMENT">
       <!-- Recall the property in repair, upgrade, and uninstall scenarios -->
       <RegistrySearch Id="RecallPuppetAgentEnvironment" Root="HKLM"
         Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurCommonProductNameWord)"
-        Name="RememberedPuppetAgentEnvironment" Type="raw" />
+        Name="RememberedPuppetAgentEnvironment" Type="raw" Win64="no" />
     </Property>
     <Property Id="PUPPET_AGENT_CERTNAME">
       <!-- Recall the property in repair, upgrade, and uninstall scenarios -->
       <RegistrySearch Id="RecallPuppetAgentCertname" Root="HKLM"
         Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurCommonProductNameWord)"
-        Name="RememberedPuppetAgentCertname" Type="raw" />
+        Name="RememberedPuppetAgentCertname" Type="raw" Win64="no" />
     </Property>
     <Property Id="PUPPET_CA_SERVER">
       <RegistrySearch Id="RecallPuppetCAServer" Root="HKLM"
         Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurCommonProductNameWord)"
-        Name="RememberedPuppetCaServer" Type="raw" />
+        Name="RememberedPuppetCaServer" Type="raw" Win64="no" />
     </Property>
     <Property Id="PUPPET_AGENT_STARTUP_MODE">
       <RegistrySearch Id="RecallPuppetAgentStartupMode" Root="HKLM"
         Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurCommonProductNameWord)"
-        Name="RememberedPuppetAgentStartupMode" Type="raw" />
+        Name="RememberedPuppetAgentStartupMode" Type="raw" Win64="no" />
     </Property>
 
     <!-- Custom Actions to handle command line property values that override
@@ -672,6 +680,7 @@
     -->
     <Feature Id="$(var.OurProductNameWord)Runtime" Title="$(var.OurProductName) Runtime" Level="1">
       <ComponentRef Id="RegistryEntries" />
+      <ComponentRef Id="RegistryEntriesArchitectureDependent" />
       <ComponentRef Id="PuppetVarDir" />
       <ComponentRef Id="HieraVarDir" />
       <ComponentRef Id="HieraEtcDir" />
