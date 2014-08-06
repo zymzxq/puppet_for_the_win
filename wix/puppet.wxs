@@ -55,6 +55,15 @@
       CompressionLevel="high"
       />
 
+    <?if $(var.Platform) = x64 ?>
+      <!-- http://wixtoolset.org/documentation/manual/v3/howtos/redistributables_and_install_checks/block_install_on_os.html
+      http://windows-installer-xml-wix-toolset.687559.n2.nabble.com/How-to-add-newline-in-lt-Condition-message-td705721.html
+        -->
+      <Condition Message="This 64-bit $(var.OurProductName) package does not support Windows Server 2003 because the 64-bit version of Ruby relies on OS features that Windows Server 2003 lacks.&#xD;&#xA;&#xD;&#xA;Please download and install the x86 version of the $(var.OurProductName) MSI instead.">
+        <![CDATA[Installed OR (VersionNT64 >= 600)]]>
+      </Condition>
+    <?endif ?>
+
     <!--
       TARGETDIR is Usually C:/  This will also be the location the install package will be copied to
       For more information: http://msdn.microsoft.com/en-us/library/aa372064.aspx
