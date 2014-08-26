@@ -102,12 +102,14 @@ Note the property as defined in step 1 should not have a defaut value, otherwise
 
 ## Remembered Properties ##
 
-The remembered properties are written to the registry:
+The remembered properties are written to the registry in two locations:
 
+    HKLM\Software\Puppet Labs\Puppet
     HKLM\Software\Puppet Labs\PuppetInstaller
 
 On x64 systems, this is a redirected registry path:
 
+    HKLM\SOFTWARE\Wow6432Node\Puppet Labs\Puppet
     HKLM\SOFTWARE\Wow6432Node\Puppet Labs\PuppetInstaller
 
 ## Conditional Custom Actions ##
