@@ -426,20 +426,48 @@
           <RegistryValue Type="integer" Name="TypesSupported" Value="7"/>
         </RegistryKey>
       </Component>
-      <Component Id="RegistryEntriesArchitectureDependent" Guid="E6D5AF4F-ACC4-4D11-AFCE-299A9ED2152C" Win64="$(var.Win64)">
-        <!-- Product Specific Properties.  We keep INSTALLDIR here so as not to
-             accidentally install Puppet Enterprise into Puppet's default
-             install directory and vice-versa. -->
+      <?if $(var.Platform) = x86 ?>
+        <Component Id="RegistryEntriesArchitectureDependent" Guid="E6D5AF4F-ACC4-4D11-AFCE-299A9ED2152C" Win64="no" Permanent="yes">
+          <!-- Product Specific Properties.  We keep INSTALLDIR here so as not to
+               accidentally install Puppet Enterprise into Puppet's default
+               install directory and vice-versa. -->
+          <RegistryKey
+            Root="HKLM"
+            Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurProductNameWord)"
+            Action="create" >
+            <!-- This is the default (aka 'unnamed') key value of this path -->
+            <RegistryValue Type="integer" Value="0"/>
+            <!-- RememberedInstallDir -->
+            <RegistryValue Name="RememberedInstallDir" Type="string" Value="[INSTALLDIR]"  KeyPath="yes" />
+            <!--
+              x86 install on top of x64 cannot capture the custom install path, because WIN64DUALFOLDERS will
+              string substitute, and replace 'Program Files' with 'Program Files (x86)'
+
+              Fortunately, x64 installers have always had Permanent set for the x64 custom install path
+              so it will never be removed during uninstall.
+            -->
+          </RegistryKey>
+        </Component>
+      <?else?>
+        <Component Id="RegistryEntriesArchitectureDependent" Guid="E6D5AF4F-ACC4-4D11-AFCE-299A9ED2152C" Win64="no" Permanent="yes">
         <RegistryKey
           Root="HKLM"
           Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurProductNameWord)"
           Action="create" >
-          <!-- This is the default (aka 'unnamed') key value of this path -->
           <RegistryValue Type="integer" Value="0"/>
-          <!-- RememberedInstallDir -->
-          <RegistryValue Name="RememberedInstallDir" Type="string" Value="[INSTALLDIR]"  KeyPath="yes" />
+          <!--
+            When upgrading from Puppet 3.6.x to Puppet 3.7 x64, the 3.6 x86 uninstall will remove the remembered x86
+            install location, which is problematic if a user chooses to switch back to 3.7 x86.  Going forward this
+            wouldn't be an issue since Permanent is set, but our hands are tied given prior art.
+
+            Fortunately, when Wix recalls the old property value with 'Program Files (x86)', it will not be automatically
+            string substituted to 'Program Files', which is a problem when going from x64 -> x86.
+          -->
+          <RegistryValue Name="RememberedInstallDir" Type="string" Value="[INSTALLDIR_X86]" />
+          <RegistryValue Name="RememberedInstallDir64" Type="string" Value="[INSTALLDIR]" KeyPath="yes" />
         </RegistryKey>
       </Component>
+    <?endif?>
     </Directory>
 
     <!-- It is possible to override WixVariable's on the command line using the
@@ -483,7 +511,13 @@
       <!-- Recall the property in repair, upgrade, and uninstall scenarios -->
       <RegistrySearch Id="RecallInstallDir" Root="HKLM"
         Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurProductNameWord)"
-        Name="RememberedInstallDir" Type="raw" Win64="$(var.Win64)" />
+        Name="$(var.RememberedInstallDirRegKey)" Type="raw" Win64="no" />
+    </Property>
+    <Property Id="INSTALLDIR_X86" >
+      <!-- Recall the property in repair, upgrade, and uninstall scenarios -->
+      <RegistrySearch Id="RecallInstallDirx86" Root="HKLM"
+        Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurProductNameWord)"
+        Name="RememberedInstallDir" Type="raw" Win64="no" />
     </Property>
     <!-- Note the static default value of "puppet".  This will be overriden by
          the command line. -->
@@ -589,6 +623,19 @@
        Value="NT AUTHORITY"
        Execute="firstSequence"/>
 
+    <?if $(var.Platform) = x86 ?>
+    <!-- If these fail, we don't want to fail the installer -->
+    <!-- We can't do a registry search for powershell's installed location because it will turn up the WOW64Node version due to not being able to bypass redirection in RegistrySearch 
+         So we will assume the default install location and if it fails, we will ignore the error.
+    -->
+    <CustomAction Id="Remove64BitPath_SetProp" Property="Remove64BitPath"
+                  Value="&quot;[%WINDIR]\System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoLogo -NonInteractive -InputFormat None -NoProfile -ExecutionPolicy Bypass -Command &quot;[\[]System.Environment[\]]::GetEnvironmentVariable(\&quot;PATH\&quot;,\&quot;Machine\&quot;).Replace(\&quot;[ProgramFiles64Folder]$(var.OurCompanyName)\Puppet\bin;\&quot;,\&quot;\&quot;).Replace(\&quot;[ProgramFiles64Folder]$(var.OurCompanyName)\Puppet\bin\&quot;,\&quot;\&quot;) | %[\{][\[]System.Environment[\]]::SetEnvironmentVariable(\&quot;PATH\&quot;,$_,\&quot;Machine\&quot;)[\}]&quot;" Execute="immediate" />
+    <CustomAction Id="Remove64BitPath" BinaryKey="WixCA" DllEntry="CAQuietExec64" Execute="deferred" Return="ignore" />
+    <CustomAction Id="Remove64BitProgramFiles_SetProp" Property="Remove64BitProgramFiles"
+                 Value="&quot;[%WINDIR]\System32\cmd.exe&quot; /c IF EXIST &quot;[ProgramFiles64Folder]$(var.OurCompanyName)\&quot; rmdir /s /q &quot;[ProgramFiles64Folder]$(var.OurCompanyName)&quot;" Execute="immediate" />
+    <CustomAction Id="Remove64BitProgramFiles" BinaryKey="WixCA" DllEntry="CAQuietExec64" Execute="deferred" Return="ignore" />
+    <?endif?>
+
     <!-- First, save off properties specified on the command line Second,
          restore the properties set by the command line overriding the recalled
          value from the registry -->
@@ -681,6 +728,16 @@
       <Custom Action='SetDomainToNtAuthority' After='SetDomainToLocalComputer'>
         (PUPPET_AGENT_ACCOUNT_USER ~= "LocalService") OR (PUPPET_AGENT_ACCOUNT_USER ~= "NetworkService")
       </Custom>
+      <?if $(var.Platform) = x86 ?>
+      <Custom Action='Remove64BitPath_SetProp' After='CostFinalize' />
+      <Custom Action='Remove64BitProgramFiles_SetProp' After='CostFinalize' />
+      <Custom Action='Remove64BitProgramFiles' After='InstallFiles'>
+        <![CDATA[VersionNT64 >= 100 AND $(var.Win64) = no AND NOT (&$(var.OurProductNameWord)Runtime = 2)]]> 
+      </Custom>
+      <Custom Action='Remove64BitPath' After='InstallFiles'>
+        <![CDATA[VersionNT64 >= 100 AND $(var.Win64) = no AND NOT (&$(var.OurProductNameWord)Runtime = 2)]]> 
+      </Custom>
+      <?endif?>
     </InstallExecuteSequence>
 
     <!--

@@ -62,9 +62,11 @@
     <?define OurProductPlatformText=" (64-bit)" ?>
     <?define Win64 = "yes" ?>
     <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+    <?define RememberedInstallDirRegKey = "RememberedInstallDir64" ?>
   <?else ?>
     <?define OurProductPlatformText="" ?>
     <?define Win64 = "no" ?>
     <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+    <?define RememberedInstallDirRegKey = "RememberedInstallDir" ?>
   <?endif ?>
 </Include>
