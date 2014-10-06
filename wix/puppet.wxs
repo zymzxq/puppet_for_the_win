@@ -159,8 +159,8 @@
                 <Condition>
                   <![CDATA[ (PUPPET_AGENT_STARTUP_MODE ~<> "manual") AND (PUPPET_AGENT_STARTUP_MODE ~<> "disabled") ]]>
                 </Condition>
-                <File Id="PuppetDaemonBat" KeyPath="yes" Source="stagedir\puppet\ext\windows\service\daemon.bat" />
-                <File Id="PuppetDaemon" KeyPath="no" Source="stagedir\puppet\ext\windows\service\daemon.rb" />
+                <File Id="PuppetDaemonBat" KeyPath="yes" Source="stagedir\service\daemon.bat" />
+                <File Id="PuppetDaemon" KeyPath="no" Source="stagedir\service\daemon.rb" />
 
                 <ServiceInstall Id="ServiceInstaller"
                   Account="[PUPPET_AGENT_ACCOUNT_DOMAIN]\[PUPPET_AGENT_ACCOUNT_USER]"
@@ -180,8 +180,8 @@
                 <Condition>
                   <![CDATA[PUPPET_AGENT_STARTUP_MODE ~= "manual"]]>
                 </Condition>
-                <File Id="PuppetDaemonBatManual" KeyPath="yes" Source="stagedir\puppet\ext\windows\service\daemon.bat" />
-                <File Id="PuppetDaemonManual" KeyPath="no" Source="stagedir\puppet\ext\windows\service\daemon.rb" />
+                <File Id="PuppetDaemonBatManual" KeyPath="yes" Source="stagedir\service\daemon.bat" />
+                <File Id="PuppetDaemonManual" KeyPath="no" Source="stagedir\service\daemon.rb" />
 
                 <ServiceInstall Id="ServiceInstallerManual"
                   Account="[PUPPET_AGENT_ACCOUNT_DOMAIN]\[PUPPET_AGENT_ACCOUNT_USER]"
@@ -201,8 +201,8 @@
                 <Condition>
                   <![CDATA[PUPPET_AGENT_STARTUP_MODE ~= "disabled"]]>
                 </Condition>
-                <File Id="PuppetDaemonBatDisabled" KeyPath="yes" Source="stagedir\puppet\ext\windows\service\daemon.bat" />
-                <File Id="PuppetDaemonDisabled" KeyPath="no" Source="stagedir\puppet\ext\windows\service\daemon.rb" />
+                <File Id="PuppetDaemonBatDisabled" KeyPath="yes" Source="stagedir\service\daemon.bat" />
+                <File Id="PuppetDaemonDisabled" KeyPath="no" Source="stagedir\service\daemon.rb" />
 
                 <ServiceInstall Id="ServiceInstallerDisabled"
                   Account="[PUPPET_AGENT_ACCOUNT_DOMAIN]\[PUPPET_AGENT_ACCOUNT_USER]"
@@ -221,7 +221,7 @@
               <!-- mcollective is only installed for Puppet Enterprise -->
               <?if $(var.PackageBrand) = enterprise ?>
               <Component Id='MCOService' Guid="7601FCEA-90B3-CC69-6A69-4087FBC7292D" Win64="$(var.Win64)">
-                <File Id="MCODaemonBat" KeyPath="yes" Source="stagedir\mcollective\ext\windows\daemon.bat" Name="mco_daemon.bat" />
+                <File Id="MCODaemonBat" KeyPath="yes" Source="stagedir\service\mco_daemon.bat" />
                 <!-- This service is installed with start set to demand because
                 it won't be correctly configured to start right away. The
                 puppet run that configures mcollective will allow it to start
@@ -422,7 +422,7 @@
             Root="HKLM"
             Key="SYSTEM\CurrentControlSet\services\eventlog\Application\Puppet"
             Action="createAndRemoveOnUninstall">
-          <RegistryValue Type="string" Name="EventMessageFile" Value="[INSTALLDIR]puppet\ext\windows\eventlog\puppetres.dll"/>
+          <RegistryValue Type="string" Name="EventMessageFile" Value="[INSTALLDIR]misc\puppetres.dll"/>
           <RegistryValue Type="integer" Name="TypesSupported" Value="7"/>
         </RegistryKey>
       </Component>
