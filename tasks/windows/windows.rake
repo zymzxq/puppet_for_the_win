@@ -163,6 +163,7 @@ namespace :windows do
   task :checkout => :clone do
     APPS.each do |name, config|
       Dir.chdir "#{TOPDIR}/downloads/#{name}" do
+        puts "Fetching #{name} from #{config[:ref]}"
         sh 'git fetch origin'
         sh 'git fetch origin --tags'
         sh 'git clean -xfd'
@@ -185,16 +186,43 @@ namespace :windows do
 
   task :misc => 'stagedir' do
     FileUtils.cp_r("conf/windows/stage/misc", "stagedir/misc")
+    FileUtils.cp_r(FileList['downloads/puppet/ext/windows/eventlog/*.dll'], 'stagedir/misc')
   end
 
-  task :stage => [:checkout, 'stagedir', :bin, :misc] do
+  task :service => 'stagedir' do
+    mkdir_p("stagedir/service")
+    FileUtils.cp_r(FileList['downloads/puppet/ext/windows/service/*'], 'stagedir/service')
+    FileUtils.cp('downloads/mcollective/ext/windows/daemon.bat', 'stagedir/service/mco_daemon.bat') if File.exists?('downloads/mcollective/ext/windows/daemon.bat')
+  end
+
+  task :stage => [:checkout, 'stagedir', :bin, :misc, :service] do
     FileList["downloads/*"].each do |app|
       dst = "stagedir/#{File.basename(app)}"
       puts "Copying #{app} to #{dst} ..."
       FileUtils.mkdir(dst)
+      excludes = [ %r{/acceptance/*},
+                   %r{/benchmarks/*},
+                   %r{/autotest/*},
+                   %r{/docs/*},
+                   %r{/ext/*},
+                   %r{/examples/*},
+                   %r{/man/*},
+                   %r{/spec/*},
+                   %r{/tasks/*},
+                   %r{/util/*},
+                   %r{/yardoc/*},
+                   %r{/COMMITTERS.md},
+                   %r{/CONTRIBUTING.md},
+                   %r{/Gemfile},
+                   %r{/Rakefile},
+                   %r{/README.md},
+                   %r{/*.patch}
+                 ]
       # This avoids copying hidden files like .gitignore and .git
-      FileUtils.cp_r FileList["#{app}/*"], dst
+      FileUtils.cp_r(FileList["#{app}/*"].exclude(*excludes), dst, :verbose => true)
     end
+    mkdir_p('stagedir/hiera/ext')
+    FileUtils.cp('downloads/hiera/ext/hiera.yaml', 'stagedir/hiera/ext/hiera.yaml')
   end
 
   task :stage_plugins => [ :stage ] do
