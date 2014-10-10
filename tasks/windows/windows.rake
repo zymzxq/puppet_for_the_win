@@ -200,28 +200,28 @@ namespace :windows do
       dst = "stagedir/#{File.basename(app)}"
       puts "Copying #{app} to #{dst} ..."
       FileUtils.mkdir(dst)
+      excludes = [ %r{/acceptance/*},
+                   %r{/benchmarks/*},
+                   %r{/autotest/*},
+                   %r{/docs/*},
+                   %r{/ext/*},
+                   %r{/examples/*},
+                   %r{/man/*},
+                   %r{/spec/*},
+                   %r{/tasks/*},
+                   %r{/util/*},
+                   %r{/yardoc/*},
+                   %r{/COMMITTERS.md},
+                   %r{/CONTRIBUTING.md},
+                   %r{/Gemfile},
+                   %r{/Rakefile},
+                   %r{/README.md},
+                   %r{/*.patch}
+                 ]
       # This avoids copying hidden files like .gitignore and .git
-      FileUtils.cp_r FileList["#{app}/*"].exclude(
-          /\/acceptance\/*/,
-          /\/benchmarks\/*/,
-          /\/autotest\/*/,
-          /\/docs\/*/,
-          /\/ext\/*/,
-          /\/examples\/*/,
-          /\/man\/*/,
-          /\/spec\/*/,
-          /\/tasks\/*/,
-          /\/yardoc\/*/,
-          /\/COMMITTERS.md/,
-          /\/CONTRIBUTING.md/,
-          /\/Gemfile/,
-          /\/Rakefile/,
-          /\/README.md/
-        ),
-        dst,
-        :verbose => true
+      FileUtils.cp_r(FileList["#{app}/*"].exclude(*excludes), dst, :verbose => true)
     end
-    FileUtils.mkdir('stagedir/hiera/ext')
+    mkdir_p('stagedir/hiera/ext')
     FileUtils.cp('downloads/hiera/ext/hiera.yaml', 'stagedir/hiera/ext/hiera.yaml')
   end
 
