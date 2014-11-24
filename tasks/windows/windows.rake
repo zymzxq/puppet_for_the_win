@@ -116,11 +116,12 @@ def heat(wxs_file, stage_dir)
   Dir.chdir TOPDIR do
     cg_name = File.basename(wxs_file.ext(''))
     dir_ref = File.basename(File.dirname(stage_dir))
+    filters_xslt = File.join(TOPDIR, 'wix/filters/filters.xslt').gsub('/','\\')
     # NOTE:  The reference specified using the -dr flag MUST exist in the
     # parent puppet.wxs file.  Otherwise, WiX won't be able to graft the
     # fragment into the right place in the package.
     dir_ref = 'INSTALLDIR' if dir_ref == 'stagedir'
-    sh "heat dir #{stage_dir} -v -ke -indent 2 -cg #{cg_name} -gg -dr #{dir_ref} -var var.StageDir -out #{wxs_file}"
+    sh "heat dir #{stage_dir} -v -ke -indent 2 -cg #{cg_name} -gg -dr #{dir_ref} -t \"#{filters_xslt}\" -var var.StageDir -out #{wxs_file}"
   end
 end
 
