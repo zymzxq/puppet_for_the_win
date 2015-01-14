@@ -2,7 +2,7 @@ $hostname = [Net.Dns]::GetHostName()
 
 function Install-Puppet($opts)
 {
-  $params = @('/qn', '/i', 'pkg\puppet.msi', '/l*v', 'install.log')
+  $params = @('/qn', '/i', 'pkg\puppet-agent.msi', '/l*v', 'install.log')
   if ($opts.Account) { $params += "PUPPET_AGENT_ACCOUNT_USER=`"$($opts.Account)`"" }
   if ($opts.Domain) { $params += "PUPPET_AGENT_ACCOUNT_DOMAIN=`"$($opts.Domain)`"" }
   if ($opts.Password) { $params += "PUPPET_AGENT_ACCOUNT_PASSWORD=`"$($opts.Password)`"" }
@@ -73,7 +73,7 @@ function Install-Puppet($opts)
 function Uninstall-Puppet
 {
   Write-Host 'Uninstalling Puppet'
-  $uninst = @('/qn', '/x', 'pkg\puppet.msi')
+  $uninst = @('/qn', '/x', 'pkg\puppet-agent.msi')
   $process = Start-Process 'msiexec' -ArgumentList $uninst -Wait -PassThru
 
   if ($process.ExitCode -ne 0)
