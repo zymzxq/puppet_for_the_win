@@ -89,6 +89,14 @@
               WorkingDirectory="bin">
               <Icon Id="FacterShortcutIcon" SourceFile="conf\windows\stage\misc\puppetlabs.ico"/>
             </Shortcut>
+            <Shortcut Id="CFacterShortcut"
+              Name="Run CFacter"
+              Description="Run CFacter in an interactive command window"
+              Target="[INSTALLDIR]bin\run_cfacter_interactive.bat"
+              Icon="CFacterShortcutIcon"
+              WorkingDirectory="bin">
+              <Icon Id="CFacterShortcutIcon" SourceFile="conf\windows\stage\misc\puppetlabs.ico"/>
+            </Shortcut>
             <Shortcut Id="PuppetShellShortcut"
               Name="Start Command Prompt with Puppet"
               Description="Start a Command Prompt with Puppet already in the PATH and RUBYLIB load path."
@@ -754,6 +762,7 @@
       <ComponentGroupRef Id="sys" />
       <ComponentGroupRef Id="puppet" />
       <ComponentGroupRef Id="facter" />
+      <ComponentGroupRef Id="cfacter" />
       <ComponentGroupRef Id="hiera" />
       <ComponentGroupRef Id="bin" />
       <ComponentGroupRef Id="misc" />

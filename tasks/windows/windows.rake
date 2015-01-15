@@ -138,7 +138,15 @@ namespace :windows do
     APPS.each do |name, config|
       if not File.exists?("downloads/#{name}")
         Dir.chdir "#{TOPDIR}/downloads" do
-          sh "git clone #{config[:repo]} #{name}"
+          if config[:path]
+            sh "curl -O #{config[:path]}/#{config[:archive]}"
+            if config[:archive] =~ /^.*\.zip$/
+              sh "unzip #{config[:archive]} -d #{name}"
+              sh "rm #{config[:archive]}"
+            end
+          else
+            sh "git clone #{config[:repo]} #{name}"
+          end
         end
       end
     end
@@ -146,6 +154,7 @@ namespace :windows do
 
   task :checkout => :clone do
     APPS.each do |name, config|
+      next unless config[:repo]
       Dir.chdir "#{TOPDIR}/downloads/#{name}" do
         puts "Fetching #{name} from #{config[:ref]}"
         sh 'git fetch origin'
