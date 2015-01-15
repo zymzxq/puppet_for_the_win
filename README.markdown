@@ -65,7 +65,7 @@ The following MSI public properties are supported:
 
 To install silently on the command line:
 
-    msiexec /qn /l*v install.txt /i puppet.msi INSTALLDIR="C:\puppet" PUPPET_MASTER_SERVER="puppetmaster.lan"
+    msiexec /qn /l*v install.txt /i puppet-agent.msi INSTALLDIR="C:\puppet" PUPPET_MASTER_SERVER="puppetmaster.lan"
 
 Note that msiexec will execute asynchronously. If you want the install to execute synchronously on the command line, prepend `start /w` as follows:
 
@@ -174,13 +174,13 @@ Once the MSI packages have been built, they can be signed with the following tas
 
     Z:\vagrant\win\puppetwinbuilder\src\puppet_for_the_win>rake windows:sign
     signtool sign /d "Puppet Enterprise" /du "http://www.puppetlabs.com" /n "Puppet Labs" \
-      /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppetenterprise.msi
+      /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppet-agent.msi
     Done Adding Additional Store
-    Successfully signed and timestamped: puppetenterprise.msi
+    Successfully signed and timestamped: puppet-agent.msi
     signtool sign /d "Puppet" /du "http://www.puppetlabs.com" /n "Puppet Labs" \
-      /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppet.msi
+      /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppet-agent.msi
     Done Adding Additional Store
-    Successfully signed and timestamped: puppet.msi
+    Successfully signed and timestamped: puppet-agent.msi
 
 The command the Rake task is executing will require HTTP Internet access to timestamp.verisign.com in order to get a digitally signed timestamp.
 

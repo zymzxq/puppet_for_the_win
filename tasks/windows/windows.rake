@@ -319,7 +319,7 @@ namespace :windows do
   task :msi => [:wixobj, :wixobj_ui, :version] do
     OBJS = FileList['wix/**/*.wixobj']
 
-    out = ENV['BRANDING'] =~ /enterprise/i ? 'puppetenterprise' : 'puppet'
+    out = 'puppet-agent'
     out = "#{out}-#{ENV['ARCH']}" if ENV['ARCH'] == 'x64'
     msi_file_name =  ENV['PKG_FILE_NAME'] || "#{out}.msi"
 
@@ -338,7 +338,7 @@ namespace :windows do
   # install the Windows SDK to get signtool.exe.  puppetwinbuilder.zip's
   # setup_env.bat should have added it to the PATH already.
   task :sign_pe => 'pkg' do |t|
-    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppetenterprise.msi'
+    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet-agent.msi'
     Dir.chdir TOPDIR do
       Dir.chdir "pkg" do
         sh "signtool sign /d \"Puppet Enterprise\" /du \"http://www.puppetlabs.com\" /n \"Puppet Labs\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{msi_file_name}"
@@ -351,7 +351,7 @@ namespace :windows do
   # install the Windows SDK to get signtool.exe.  puppetwinbuilder.zip's
   # setup_env.bat should have added it to the PATH already.
   task :sign_foss => 'pkg' do |t|
-    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet.msi'
+    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet-agent.msi'
     Dir.chdir TOPDIR do
       Dir.chdir "pkg" do
         sh "signtool sign /d \"Puppet\" /du \"http://www.puppetlabs.com\" /n \"Puppet Labs\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{msi_file_name}"
@@ -365,14 +365,14 @@ namespace :windows do
 
   # This is also called from the build script in the Puppet Win Builder archive.
   # This will be called AFTER the update task in a new process.
-  desc "Build puppet.msi"
+  desc "Build puppet-agent.msi"
   task :build => :clean do |t|
     ENV['BRANDING'] = 'foss'
     ENV['PE_VERSION_STRING'] = nil
     Rake::Task["windows:msi"].invoke
   end
 
-  desc "Build puppetenterprise.msi"
+  desc "Build puppet-agent.msi"
   task :buildenterprise => :clean do |t|
     ENV['BRANDING'] = "enterprise"
     if not ENV['PE_VERSION_STRING']
@@ -397,7 +397,7 @@ namespace :windows do
 
   desc 'Install the MSI using msiexec'
   task :install => 'pkg' do |t|
-    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet.msi'
+    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet-agent.msi'
     Dir.chdir "pkg" do
       sh "msiexec /q /l*v install.txt /i #{msi_file_name} INSTALLDIR=\"C:\\puppet\" PUPPET_MASTER_SERVER=\"puppetmaster\" PUPPET_AGENT_CERTNAME=\"windows.vm\""
     end
@@ -405,7 +405,7 @@ namespace :windows do
 
   desc 'Uninstall the MSI using msiexec'
   task :uninstall => 'pkg' do |t|
-    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet.msi'
+    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet-agent.msi'
     Dir.chdir "pkg" do
       sh "msiexec /qn /l*v uninstall.txt /x #{msi_file_name}"
     end
