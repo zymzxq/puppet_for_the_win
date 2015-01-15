@@ -226,8 +226,6 @@
                 <CreateFolder />
                 <File Id="PuppetDaemon" KeyPath="yes" Source="stagedir\service\daemon.rb" />
               </Component>
-              <!-- mcollective is only installed for Puppet Enterprise -->
-              <?if $(var.PackageBrand) = enterprise ?>
               <Component Id='MCOService' Guid="7601FCEA-90B3-CC69-6A69-4087FBC7292D" Win64="$(var.Win64)">
                 <File Id="MCODaemonBat" KeyPath="yes" Source="stagedir\service\mco_daemon.bat" />
                 <!-- This service is installed with start set to demand because
@@ -235,19 +233,19 @@
                 puppet run that configures mcollective will allow it to start
                 and set it to automatic -->
                 <ServiceInstall Id="MCOServiceInstaller"
-                  Account="LocalSystem"
+                  Account="[PUPPET_AGENT_ACCOUNT_DOMAIN]\[PUPPET_AGENT_ACCOUNT_USER]"
+                  Password="[PUPPET_AGENT_ACCOUNT_PASSWORD]"
                   Description="Puppet Labs server orchestration framework"
                   DisplayName="Marionette Collective Server"
                   Interactive="no"
-                  Name="pe-mcollective"
+                  Name="mcollective"
                   Start="demand"
                   Type="ownProcess"
                   ErrorControl="normal"
                   Vital="yes"
                   />
-                <ServiceControl Id="MCOStartService" Stop="both" Remove="uninstall" Name="pe-mcollective" Wait="yes" />
+                <ServiceControl Id="MCOStartService" Stop="both" Remove="uninstall" Name="mcollective" Wait="yes" />
               </Component>
-              <?endif?>
             </Directory>
           </Directory>
         </Directory>
@@ -265,8 +263,6 @@
               </Component>
             </Directory>
           </Directory>
-          <!-- mcollective is only installed for Puppet Enterprise -->
-          <?if $(var.PackageBrand) = enterprise ?>
           <Directory Id="MCOAppData" Name="mcollective">
             <Directory Id="MCOConfDir" Name="etc">
               <Component Id="MCOConfDir" Permanent="yes" Guid="3E904914-17C7-138C-F5DF-280F680E067C">
@@ -281,7 +277,6 @@
               </Directory>
             </Directory>
           </Directory>
-          <?endif ?>
           <Directory Id="PuppetAppData" Name="puppet">
             <Directory Id="PuppetConfDir" Name="etc">
               <!-- This is a permanent directory, do not remove on uninstall -->
@@ -801,15 +796,11 @@
       <ComponentRef Id="PuppetServiceAutomatic" />
       <ComponentRef Id="PuppetServiceManual" />
       <ComponentRef Id="PuppetServiceDisabled" />
-
-      <!-- The MCO Parts are for Puppet Enterprise -->
-      <?if $(var.PackageBrand) = enterprise ?>
       <ComponentGroupRef Id="mcollective" />
       <ComponentGroupRef Id="mcollective_plugins" />
       <ComponentRef Id="MCOConfDir" />
       <ComponentRef Id="MCOLogDir" />
       <ComponentRef Id="MCOService" />
-      <?endif ?>
     </Feature>
   </Product>
 </Wix>

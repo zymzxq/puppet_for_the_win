@@ -28,6 +28,7 @@ def variable_define_flags
   flags['PuppetDescTag'] = describe 'downloads/puppet'
   flags['FacterDescTag'] = describe 'downloads/facter'
   flags['HieraDescTag']  = describe 'downloads/hiera'
+  flags['MCODescTag']  = describe 'downloads/mcollective'
 
   # The regular expression with back reference groups for version string
   # parsing.  We re-use this against either git-describe on Puppet or on
@@ -47,7 +48,6 @@ def variable_define_flags
   when /enterprise/i
     flags['PackageBrand'] = "enterprise"
     msg = "Could not parse PE_VERSION_STRING env variable.  Set it with something like PE_VERSION_STRING=2.5.0"
-    flags['MCODescTag']  = describe 'downloads/mcollective'
     # The Package Version components for PE
     match_data = nil
     @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
@@ -238,10 +238,8 @@ namespace :windows do
   end
 
   task :wxs => [ :stage, 'wix/fragments' ] do
-    if ENV["BRANDING"] == "enterprise"
-      Rake::Task["windows:stage_plugins"].invoke
-      Rake::Task["windows:remove_vendor"].invoke
-    end
+    Rake::Task["windows:stage_plugins"].invoke
+    Rake::Task["windows:remove_vendor"].invoke
     FileList["stagedir/*"].each do |staging|
       name = File.basename(staging)
       heat("wix/fragments/#{name}.wxs", staging)
