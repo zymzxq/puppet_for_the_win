@@ -297,27 +297,6 @@
                   Section="main"
                   Key="autoflush" Value="true"
                   Directory="PuppetConfDir" />
-                <!-- Only set these puppet.conf entries for Puppet Enterprise.
-                     This is to make Puppet FOSS consistent with Puppet FOSS on
-                     other platforms and Puppet Enterprise consistent with PE
-                     on other platforms. -->
-                <?if $(var.PackageBrand) = enterprise ?>
-                <IniFile Id="PuppetConfArchiveFiles" Name="puppet.conf"
-                  Action="createLine"
-                  Section="main"
-                  Key="archive_files" Value="true"
-                  Directory="PuppetConfDir" />
-                <IniFile Id="PuppetConfArchiveFileServer" Name="puppet.conf"
-                  Action="addLine"
-                  Section="main"
-                  Key="archive_file_server" Value="[PUPPET_MASTER_SERVER]"
-                  Directory="PuppetConfDir" />
-                <IniFile Id="PuppetConfGraph" Name="puppet.conf"
-                  Action="createLine"
-                  Section="main"
-                  Key="graph" Value="true"
-                  Directory="PuppetConfDir" />
-                <?endif ?>
               </Component>
               <Component Id="PuppetConfWithAgentEnvironment" Permanent="yes" Guid="EC56FB39-A176-42BA-BB1C-10C8DE76AE67">
                 <Condition>PUPPET_AGENT_ENVIRONMENT</Condition>

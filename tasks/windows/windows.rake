@@ -21,8 +21,6 @@ TOPDIR=File.expand_path(File.join(File.dirname(__FILE__), "..", ".."))
 
 # This method should be called by candle to figure out the list of variables
 # we're defining "outside" the build system.  Git describe and what have you.
-# This is ultimately set by the environment variable BRANDING which could be
-# foss|enterprise
 def variable_define_flags
   flags = Hash.new
   flags['PuppetDescTag'] = describe 'downloads/puppet'
@@ -31,45 +29,29 @@ def variable_define_flags
   flags['MCODescTag']  = describe 'downloads/mcollective'
 
   # The regular expression with back reference groups for version string
-  # parsing.  We re-use this against either git-describe on Puppet or on
-  # ENV['PE_VERSION_STRING'] which should match the same pattern.  NOTE that we
-  # can only use numbers in the product version and that product version
-  # impacts major upgrades: ProductVersion Property is defined as
-  # [0-255].[0-255].[0-65535] See:
+  # parsing.  We use this against on ENV['AGENT_VERSION_STRING'] which
+  # should match the same pattern.  NOTE that we can only use numbers in
+  # the product version and that product version impacts major upgrades:
+  # ProductVersion Property is defined as [0-255].[0-255].[0-65535] See:
   # http://stackoverflow.com/questions/9312221/msi-version-numbers
-  # This regular expression focuses on the major numbers and discards things like "rc1" in the string
+  # This regular expression focuses on the major numbers and discards
+  # things like "rc1" in the string
   @version_regexps = [
     /(\d+)[^.]*?\.(\d+)[^.]*?\.(\d+)[^.]*?-(\d+)-(.*)/,
     /(\d+)[^.]*?\.(\d+)[^.]*?\.(\d+)[^.]*?\.(\d+)/,
     /(\d+)[^.]*?\.(\d+)[^.]*?\.(\d+)[^.]*?/,
   ]
 
-  case ENV['BRANDING']
-  when /enterprise/i
-    flags['PackageBrand'] = "enterprise"
-    msg = "Could not parse PE_VERSION_STRING env variable.  Set it with something like PE_VERSION_STRING=2.5.0"
-    # The Package Version components for PE
-    match_data = nil
-    @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
-      match_data = ENV['PE_VERSION_STRING'].match re
-    end
-    flags['MajorVersion'] = match_data[1]
-    flags['MinorVersion'] = match_data[2]
-    flags['BuildVersion'] = match_data[3]
-    flags['Revision'] = match_data[4] || 0
-  else
-    flags['PackageBrand'] = "foss"
-    msg = "Could not parse git-describe annotated tag for Puppet"
-    # The Package Version components for FOSS
-    match_data = nil
-    @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
-      match_data = flags['PuppetDescTag'].match re
-    end
-    flags['MajorVersion'] = match_data[1]
-    flags['MinorVersion'] = match_data[2]
-    flags['BuildVersion'] = match_data[3]
-    flags['Revision'] = match_data[4] || 0
+  msg = "Could not parse AGENT_VERSION_STRING env variable.  Set it with something like AGENT_VERSION_STRING=1.0.0"
+  # The Package Version components for PE
+  match_data = nil
+  @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
+    match_data = ENV['AGENT_VERSION_STRING'].match re
   end
+  flags['MajorVersion'] = match_data[1]
+  flags['MinorVersion'] = match_data[2]
+  flags['BuildVersion'] = match_data[3]
+  flags['Revision'] = match_data[4] || 0
 
   # Return the string of flags suitable for candle
   flags.inject([]) { |a, (k,v)| a << "-d#{k}=\"#{v}\"" }.join " "
@@ -141,6 +123,7 @@ namespace :windows do
   CONFIG = YAML.load_file(ENV["config"] || "config.yaml")
   APPS = CONFIG[:repos]
   ENV['ARCH'] = ENV['ARCH'] || 'x86'
+  ENV['PKG_FILE_NAME'] = ENV['PKG_FILE_NAME'] || "puppet-agent-#{ENV['AGENT_VERSION_STRING']}-#{ENV['ARCH']}.msi"
 
   task :clean_downloads => 'downloads' do
     FileList["downloads/*"].each do |repo|
@@ -263,96 +246,44 @@ namespace :windows do
   end
 
   task :version do
-    if ENV['PE_VERSION_STRING']
-      ["puppet", "mcollective"].each do | product |
-        if File.exists?("stagedir/#{product}/lib/#{product}/version.rb")
-          version_file = "stagedir/#{product}/lib/#{product}/version.rb"
-        elsif File.exists?("stagedir/#{product}/lib/#{product}.rb")
-          version_file = "stagedir/#{product}/lib/#{product}.rb"
-        else
-          raise ArgumentError, "Could not patch #{product} version, no version file found"
-        end
-
-        content = File.open(version_file, 'rb') { |f| f.read }
-
-        if product == "puppet"
-          modified = content.gsub(/(PUPPETVERSION\s*=\s*)(['"])([\.\d]*)\s*(.*?)(['"])/) do |match|
-            pre         = $1
-            start_quote = $2
-            version     = $3
-            pe_version  = $4
-            end_quote   = $5
-
-            modified =
-              if pe_version =~ /\(Puppet Enterprise.*\)/
-                # rewrite as one line:
-                #   PUPPETVERSION = "3.6.2 (Puppet Enterprise 3.3.0)"
-                "#{pre}#{start_quote}#{version} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{end_quote}"
-              else
-                # rewrite as two lines:
-                #   PEVERSION = '3.3.0'
-                #   PUPPETVERSION = "3.6.2 (Puppet Enterprise 3.3.0)"
-                "PEVERSION = #{start_quote}#{ENV['PE_VERSION_STRING']}#{end_quote}\n    #{pre}#{start_quote}#{version} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{end_quote}"
-              end
-          end
-        elsif product == "mcollective"
-          msg = 'Could not parse git-describe annotated tag for MCollective'
-          match_data=[]
-          @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
-            match_data = (describe 'downloads/mcollective').match re
-          end
-          mco_version="#{match_data[1]}.#{match_data[2]}.#{match_data[3]}." << (match_data[4] || 0).to_s
-          modified = content.gsub("@DEVELOPMENT_VERSION@", "#{mco_version}")
-        end
-
-        if content == modified
-          raise ArgumentError, "(#12975) Could not patch #{product}.rb.  Check the regular expression around this line in the backtrace against #{version_file}"
-        end
-
-        File.open(version_file, "wb") { |f| f.write(modified) }
-      end
+    if File.exists?("stagedir/mcollective/lib/mcollective.rb")
+      version_file = "stagedir/mcollective/lib/mcollective.rb"
+    else
+      raise ArgumentError, "Could not patch mcollective version, no version file found"
     end
+
+    content = File.open(version_file, 'rb') { |f| f.read }
+
+    msg = 'Could not parse git-describe annotated tag for MCollective'
+    match_data=[]
+    @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
+      match_data = (describe 'downloads/mcollective').match re
+    end
+    mco_version="#{match_data[1]}.#{match_data[2]}.#{match_data[3]}." << (match_data[4] || 0).to_s
+    modified = content.gsub("@DEVELOPMENT_VERSION@", "#{mco_version}")
+
+    if content == modified
+      raise ArgumentError, "(#12975) Could not patch mcollective.rb.  Check the regular expression around this line in the backtrace against #{version_file}"
+    end
+
+    File.open(version_file, "wb") { |f| f.write(modified) }
   end
 
   task :msi => [:wixobj, :wixobj_ui, :version] do
     OBJS = FileList['wix/**/*.wixobj']
-
-    out = 'puppet-agent'
-    out = "#{out}-#{ENV['ARCH']}" if ENV['ARCH'] == 'x64'
-    msi_file_name =  ENV['PKG_FILE_NAME'] || "#{out}.msi"
-
     Dir.chdir TOPDIR do
-      sh "light -ext WiXUtilExtension -ext WixUIExtension -cultures:en-us -loc wix/localization/puppet_en-us.wxl -out pkg/#{msi_file_name} #{OBJS}"
+      sh "light -ext WiXUtilExtension -ext WixUIExtension -cultures:en-us -loc wix/localization/puppet_en-us.wxl -out pkg/#{ENV['PKG_FILE_NAME']} #{OBJS}"
     end
   end
 
-  # Sign all packages
-  desc "Sign all MSI packages"
-  task :sign => [ :sign_pe, :sign_foss ]
-
-  # Digitally sign the MSI package
-  desc "Sign the PE msi package"
+  desc "Sign the agent msi package"
   # signtool.exe must be in your path for this task to work.  You'll need to
   # install the Windows SDK to get signtool.exe.  puppetwinbuilder.zip's
   # setup_env.bat should have added it to the PATH already.
-  task :sign_pe => 'pkg' do |t|
-    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet-agent.msi'
+  task :sign => 'pkg' do |t|
     Dir.chdir TOPDIR do
       Dir.chdir "pkg" do
-        sh "signtool sign /d \"Puppet Enterprise\" /du \"http://www.puppetlabs.com\" /n \"Puppet Labs\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{msi_file_name}"
-      end
-    end
-  end
-
-  desc "Sign the FOSS msi package"
-  # signtool.exe must be in your path for this task to work.  You'll need to
-  # install the Windows SDK to get signtool.exe.  puppetwinbuilder.zip's
-  # setup_env.bat should have added it to the PATH already.
-  task :sign_foss => 'pkg' do |t|
-    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet-agent.msi'
-    Dir.chdir TOPDIR do
-      Dir.chdir "pkg" do
-        sh "signtool sign /d \"Puppet\" /du \"http://www.puppetlabs.com\" /n \"Puppet Labs\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{msi_file_name}"
+        sh "signtool sign /d \"Puppet\" /du \"http://www.puppetlabs.com\" /n \"Puppet Labs\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{ENV['PKG_FILE_NAME']}"
       end
     end
   end
@@ -365,17 +296,10 @@ namespace :windows do
   # This will be called AFTER the update task in a new process.
   desc "Build puppet-agent.msi"
   task :build => :clean do |t|
-    ENV['BRANDING'] = 'foss'
-    ENV['PE_VERSION_STRING'] = nil
-    Rake::Task["windows:msi"].invoke
-  end
-
-  desc "Build puppet-agent.msi"
-  task :buildenterprise => :clean do |t|
-    ENV['BRANDING'] = "enterprise"
-    if not ENV['PE_VERSION_STRING']
-      puts "Warning: PE_VERSION_STRING is not set in the environment.  Defaulting to 2.5.0"
-      ENV['PE_VERSION_STRING'] = '2.5.0'
+    if not ENV['AGENT_VERSION_STRING']
+      puts "Warning: AGENT_VERSION_STRING is not set in the environment.  Defaulting to 1.0.0"
+      ENV['AGENT_VERSION_STRING'] = '1.0.0'
+      ENV['PKG_FILE_NAME'] = "puppet-agent-#{ENV['AGENT_VERSION_STRING']}-#{ENV['ARCH']}.msi"
     end
     Rake::Task["windows:msi"].invoke
   end
@@ -395,17 +319,15 @@ namespace :windows do
 
   desc 'Install the MSI using msiexec'
   task :install => 'pkg' do |t|
-    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet-agent.msi'
     Dir.chdir "pkg" do
-      sh "msiexec /q /l*v install.txt /i #{msi_file_name} INSTALLDIR=\"C:\\puppet\" PUPPET_MASTER_SERVER=\"puppetmaster\" PUPPET_AGENT_CERTNAME=\"windows.vm\""
+      sh "msiexec /q /l*v install.txt /i #{ENV['PKG_FILE_NAME']} INSTALLDIR=\"C:\\puppet\" PUPPET_MASTER_SERVER=\"puppetmaster\" PUPPET_AGENT_CERTNAME=\"windows.vm\""
     end
   end
 
   desc 'Uninstall the MSI using msiexec'
   task :uninstall => 'pkg' do |t|
-    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet-agent.msi'
     Dir.chdir "pkg" do
-      sh "msiexec /qn /l*v uninstall.txt /x #{msi_file_name}"
+      sh "msiexec /qn /l*v uninstall.txt /x #{ENV['PKG_FILE_NAME']}"
     end
   end
 end
