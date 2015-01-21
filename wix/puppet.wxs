@@ -32,9 +32,7 @@
 
     <util:Group Id="AdminGroup" Name="Administrators"/>
 
-    <!-- We allow "downgrades" to support Puppet to Puppet Enterprise
-         "upgrades" since these versions will not compare well.  e.g. we need
-         to upgrade from Puppet 2.7.10 to Puppet Enterprise 2.5.0 -->
+    <!-- We allow "downgrades" to support Puppet to Puppet Agent -->
     <MajorUpgrade AllowDowngrades="yes" />
 
     <!-- Note, this UI element must come _after_ the Package element -->
@@ -382,8 +380,7 @@
       <!-- This section inspired by: http://wix.sourceforge.net/manual-wix3/write_a_registry_entry.htm -->
       <!-- We write to $(var.OurCompanyName)\$(var.OurCommonProductNameWord)
            (Puppet Labs\CommonProduct)
-           in order to restore the PUPPET_MASTER_SERVER property when replacing
-           Puppet FOSS with Puppet Enterprise. -->
+           in order to restore the PUPPET_MASTER_SERVER property -->
       <Component Id="RegistryEntries" Guid="68F5D91C-49C8-43F7-940A-481007689E79" Win64="no">
         <RegistryKey
           Root="HKLM"
@@ -410,9 +407,7 @@
       </Component>
       <?if $(var.Platform) = x86 ?>
         <Component Id="RegistryEntriesArchitectureDependent" Guid="E6D5AF4F-ACC4-4D11-AFCE-299A9ED2152C" Win64="no" Permanent="yes">
-          <!-- Product Specific Properties.  We keep INSTALLDIR here so as not to
-               accidentally install Puppet Enterprise into Puppet's default
-               install directory and vice-versa. -->
+          <!-- Product Specific Properties.  We keep INSTALLDIR here. -->
           <RegistryKey
             Root="HKLM"
             Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurProductNameWord)"

@@ -21,13 +21,11 @@
        http://wix.sourceforge.net/manual-wix3/major_upgrade.htm-->
   <?define ProductVersionNumber="$(var.MajorVersion).$(var.MinorVersion).$(var.BuildVersion)" ?>
 
-  <!-- If we have FOSS installed, we need to support "Upgrading" to enterprise.
-       Using a generated product code avoids the dreaded "Another version of
+  <!-- Using a generated product code avoids the dreaded "Another version of
        this product is already installed..." message. -->
   <?define ProductCode="*" ?>
   <!-- Upgrade code HAS to be the same for all updates.  Once you've chosen it
-       don't change it. To support upgrades from FOSS to PE and vice-versa this
-       upgrade code needs to be the same for both packages. -->
+       don't change it. -->
   <!-- DO NOT CHANGE THIS UUID.  EVER.  WE CANNOT DO UPGRADES THE WAY WE WANT
        IF IT CHANGES. REALLY!  DON'T DO IT! -->
   <?define UpgradeCode="2AD3D11C-61B3-4710-B106-B4FDEC5FA358" ?>
