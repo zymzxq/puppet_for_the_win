@@ -1,243 +1,213 @@
 # For the Win #
 
-This project is a small set of Rake tasks to automate the process of building
-MSI packages for Puppet on Windows systems.
-
-# Screen Shots #
-
-The following screen shots show the current state of the graphical installer.
-These screen shots are generated automatically.
-
-![Screen 0](http://dl.dropbox.com/u/17169007/img/screenshot_1330473784_1.png)
-![Screen 1](http://dl.dropbox.com/u/17169007/img/screenshot_1330385269_1.png)
-![Screen 2](http://dl.dropbox.com/u/17169007/img/screenshot_1330385269_2.png)
-![Screen 3](http://dl.dropbox.com/u/17169007/img/screenshot_1330385269_3.png)
-![Screen 4](http://dl.dropbox.com/u/17169007/img/screenshot_1330385269_4.png)
-
-## Shortcut Icons ##
-
-The current icon being used looks like this:
-
-![Icons](http://dl.dropbox.com/u/17169007/img/screenshoot_1331337674_0_icons.png)
-
-## UAC Integration ##
-
-When running Puppet and Facter interactively using the Start Menu shortcuts,
-the process will automatically request Administrator rights using UAC:
-
-![UAC Prompt](http://dl.dropbox.com/u/17169007/img/screenshot_1330369084_0_UAC.png)
-
-## Command Prompt ##
-
-A shortcut named "Start Command Prompt with Puppet" will be created in the
-Start Menu.  This shortcut automates the process of starting `cmd.exe` and
-manually setting the `PATH` and `RUBYLIB` environment variables.
-
-This command windows looks like this:
-
-![Start Command Prompt with Puppet](http://dl.dropbox.com/u/17169007/img/screenshot_1330411423_shell.png)
+This project is a small set of Rake tasks to automate the process of building MSI packages for Puppet on Windows systems.
 
 # Overview #
 
-This is a separate repository because it is meant to build MSI packages for
-arbitrary versions of Puppet, Facter and other related tools.
+This is a separate repository because it is meant to build MSI packages for arbitrary versions of Puppet, Facter and other related tools.
 
-This project is meant to be checked out into a special Puppet Windows Dev Kit
-directory structure.  This Dev Kit will provide the tooling necessary to
-actually build the packages.
-
-This project requires these tools from the `puppetbuilder` Dev Kit for Windows
-systems.
+This project requires these tools from the `puppetwinbuilder` Dev Kit for Windows systems.
 
  * Ruby
  * Rake
  * Git
- * 7zip
  * WiX
-
-# Desktop Integration #
-
-Puppet and Facter can be run directly from the Explorer desktop by double
-clicking on `run_puppet_interactive.bat` and `run_facter_interactive.bat`.
-Shortcuts in the Start Menu will be added for these batch files.
-
-These batch files are not meant to be run from other scripts or the Task
-Scheduler because they explicitly pause at the end to give the user a chance to
-review the output without `cmd.exe` vanishing on them.  This looks like:
-
-![Run Facter Interactive](http://links.puppetlabs.com/ftw_msi_facter_interactive_1a.png)
 
 # Getting Started #
 
-Given a basic Windows 2003 R2 x64 system with the [Puppet Win
-Builder](http://links.puppetlabs.com/puppetwinbuilder) archive unpacked into
-`C:/puppetwinbuilder/` the following are all that is required to build the MSI
-packages.
+Download the [Puppet Win
+Builder](http://links.puppetlabs.com/puppetwinbuilder) archive, and unzip into `C:/puppetwinbuilder/`. Once extracted, execute the
+`setup_env.bat` script which will update your PATH to include the
+necessary tools, e.g. git, wix (heat, candle, and light), etc.
 
     C:\>cd puppetwinbuilder
-    C:\puppetwinbuilder\> build
-    ...
+    C:\puppetwinbuilder>setup_env.bat
+    C:\puppetwinbuilder>cd \work
+    C:\work>git clone git://github.com/puppetlabs/puppet_for_the_win
+    C:\work>cd puppet_for_the_win
+    C:\work\puppet_for_the_win>rake -T
 
-(REVISIT - This is the thing we're working to.  Make sure this is accurate once
-implemented)
+# Building
 
-### Note ###
+Puppet For The Win composes an MSI from several different repositories. You will need to specify a configuration file to build it.
 
-The version of Git included in this toolchain may be older than the one that is
-locally configured.  The initial bootstrap of Git repositories may fail due to
-newer configuration in the local `.gitconfig` file.  For example, if Git is
-configured with `simple` for the `push` configuration option, `BUILD.cmd` may fail.
-Adjust the users `.gitconfig` accordingly.   
+## Open Source
 
-# Making Changes #
+To build Puppet open source:
 
-The [Puppet Win Builder](http://links.puppetlabs.com/puppetwinbuilder) archive
-should remain relatively static.  The purpose of this archive is simply to
-bootstrap the tools required for the build process.
+    C:\work\puppet_for_the_win>rake windows:build CONFIG=foss-stable.yaml
 
-Changes to the build process itself should happen in the [Puppet For the
-Win](https://github.com/puppetlabs/puppet_for_the_win) repository on Github.
+## Puppet Enterprise
 
-# Continuous Integration #
+To build Puppet Enterprise:
 
-The `BUILD.cmd` build script _should_ work just fine with a build system like
-Jenkins.  If it does not, please let us know.
+    C:\work\puppet_for_the_win>rake windows:buildenterprise PE_VERSION_STRING=2.7.0 CONFIG=pe2.7.yaml
 
-# Building from Specific Repositories and Branches #
+Note that the `PE_VERSION_STRING` is needed to patch the puppet version source file.
 
-The build system can be used to build a specific branch or repository of Puppet
-and Facter.  To customize the Git reference to build you can first specific the
-repositories to clone with the `windows:clone` task and then specify the
-reference to checkout using the `windows:checkout` task.
+## Order Dependent Builds #
 
-This example builds a package given the latest development heads of the 2.7.x
-and 1.6.x integration branches.
-
-    rake clean
-    rake "windows:clone[git://github.com/puppetlabs/puppet.git,git://github.com/puppetlabs/facter.git]"
-    rake "windows:checkout[refs/remotes/origin/2.7.x,refs/remotes/origin/1.6.x]"
-    rake windows:build
+The builds are order dependent. Build Puppet Enterprise after building Puppet FOSS, but not the other way around:
 
 # User Facing Customizations #
 
-## Installation Directory CLI ##
+The following MSI public properties are supported:
 
-The command line installation UX is implemented using the public `INSTALLDIR`
-property.
+ * `INSTALLDIR` `"%ProgramFiles(x86)%\Puppet Labs\Puppet"`
+ * `PUPPET_MASTER_SERVER` "puppet"
+ * `PUPPET_CA_SERVER` Unset, Puppet will default to using `PUPPET_MASTER_SERVER`
+ * `PUPPET_AGENT_CERTNAME` Unset, Puppet will default to using `facter fqdn`
+ * `PUPPET_AGENT_ENVIRONMENT` "production"
+ * `PUPPET_AGENT_STARTUP_MODE` "Automatic"
+ * `PUPPET_AGENT_ACCOUNT_DOMAIN` Unset
+ * `PUPPET_AGENT_ACCOUNT_USER` "LocalSystem"
+ * `PUPPET_AGENT_ACCOUNT_PASSWORD` Unset
 
-The installation directory may be specified on the command line by passing the
-property.  This example logs verbosely to the `install.txt` file and performs a
-silent installation to `C:\test\puppet` which is not the default.
+To install silently on the command line:
 
     msiexec /qn /l*v install.txt /i puppet.msi INSTALLDIR="C:\puppet" PUPPET_MASTER_SERVER="puppetmaster.lan"
 
-# Public Properties #
+Note that msiexec will execute asynchronously. If you want the install to execute synchronously on the command line, prepend `start /w` as follows:
 
-All of these are optional and their default values are in parentheses.
+    start /w msiexec /qn ...
 
- * `INSTALLDIR` (`"%PROGRAMFILES%\Puppet Labs\Puppet"`)
- * `PUPPET_AGENT_CERTNAME` (Unset, Puppet will default to using `facter fqdn`)
- * `PUPPET_MASTER_SERVER` ("puppet")
- * `PUPPET_CA_SERVER` (Unset, Puppet will default to using
-   `PUPPET_MASTER_SERVER`)
+# Upgrading
 
-If the `PUPPET_AGENT_CERTNAME` property is not set on the command line when
-installing the package, then no `certname` setting will be written to
-`puppet.conf`.  There is no ability provided to configure the certificate name
-using the graphical installer, `puppet.conf` must be configured
-post-installation.  Please see [Ticket
-12640](http://projects.puppetlabs.com/issues/12640) for information about why.
+The installer preserves configuration settings during an upgrade. If you override a value on the command line, it will overwrite the previous value in puppet.conf, if any.
 
-The value of `PUPPET_AGENT_CERTNAME` must be lower case as per [Ticket
-1168](http://projects.puppetlabs.com/issues/1168)
+The `PUPPET_AGENT_ACCOUNT_*` settings are exceptions, as they must be specified each time you install or upgrade (since we do not want to save the credentials in the registry).
 
-# Add Remove Programs #
+# WiX
 
-The installer is integrated well with the Add or Remove Programs feature of
-Microsoft Windows.  The following screen shots show the current look:
+Every Puppet MSI contains:
 
-![Add Remove Programs 1](http://dl.dropbox.com/u/17169007/img/screenshot_1329854437_5.png)
-![Add Remove Programs 2](http://dl.dropbox.com/u/17169007/img/screenshot_1329854437_6.png)
-![Add Remove Programs 3](http://dl.dropbox.com/u/17169007/img/screenshot_1329854437_7.png)
+1. unique PackageCode
+1. unique ProductCode, so that we always perform Major upgrades.
+1. the same UpgradeCode
 
-# Puppet Enterprise Facts #
+A major upgrade means that an upgrade will remove the old product and install the new one. However, we want to preserve settings, such as the Service startup type (Automatic, Manual, etc).
 
-Facts required to connect a Windows Puppet agent to a Puppet Enterprise master
-are automatically written to Puppet's confdir.  The facts will be stored in
-`%COMMON_APPDATA%/PuppetLabs/facter/facts.d/puppet_installer.txt`
+As a result, we use the "RememberMe" pattern to preserve settings. The flow works like this for an arbitrary MSI public property `PUPPET_FOO`:
 
-These facts are written for both the Puppet FOSS and Puppet Enterprise branded
-installation package.  The following entries are written by default by the
-installer and may be changed after the package has been installed.
+1. `PUPPET_FOO` is defined.
+1. Windows installer sets `PUPPET_FOO` to the command line value, if one was specified.
+1. Before AppSearch, the `SaveCmdLinePuppetFoo` custom action sets `CMDLINE_PUPPET_FOO` to the current value of `PUPPET_FOO`.
+1. In AppSearch, `PUPPET_FOO` is set to the value of the RememberMe property in the registry, if any.
+1. After AppSearch, the `SetFromCmdLinePuppetFoo` custom action sets `PUPPET_FOO` to the value of `CMDLINE_PUPPET_FOO`.
+1. In RegistryEntries, the value of `PUPPET_FOO` is written to the registry.
 
-    fact_stomp_port=61613
-    fact_is_puppetagent=true
-    fact_is_puppetmaster=false
-    fact_is_puppetconsole=false
+Note that if a value is specified on the command line, it takes precedence over the previously remembered value.
 
-The stomp server fact defaults to the puppet master hostname specified in the
-graphical installer, or using the `PUPPET_MASTER_SERVER` property in the
-command line installer.
+Note the property as defined in step 1 should not have a defaut value, otherwise, it will **always** take precedence over the remembered value, which would break upgrades.
 
-    fact_stomp_server=puppet
+## Remembered Properties ##
 
-The stomp server and stomp port facts are put in place for future support of
-MCollective on Windows.  These facts will not be used until MCollective support
-has been added to the Windows packages.
+The remembered properties are written to the registry in two locations:
 
-# Remembered Properties #
-
-The Puppet and Puppet Enterprise installers will write the values of user
-specified public properties into the following registry paths:
-
+    HKLM\Software\Puppet Labs\Puppet
     HKLM\Software\Puppet Labs\PuppetInstaller
-      RememberedInstallDir          = INSTALLDIR
-      RememberedPuppetMasterServer  = PUPPET_MASTER_SERVER
-      RememberedPuppetAgentCertname = PUPPET_AGENT_CERTNAME
-      RememberedPuppetCaServer      = PUPPET_CA_SERVER
 
-When the Puppet Enterprise MSI is in an upgrade scenario and is replacing
-Puppet FOSS these properties will be "recalled" and filled in as the default
-settings in the GUI.  If you are running `puppetenterprise.msi` and you notice
-it's automatically filled in the value you previously used for Puppet, this is
-how it's getting that information.
+On x64 systems, this is a redirected registry path:
 
-# Puppet Configuration Settings #
+    HKLM\SOFTWARE\Wow6432Node\Puppet Labs\Puppet
+    HKLM\SOFTWARE\Wow6432Node\Puppet Labs\PuppetInstaller
 
-The MSI package will configure the `archive_files` and `archive_file_server`
-settings for Puppet Enterprise.  These configuration settings enable `puppet
-inspect` to save files centrally on the Puppet Master to enable the diff view
-in the Puppet Enterprise Console.  These two settings are not set when
-installing the Puppet FOSS package to match the behavior of Puppet FOSS on
-other platforms.
+## Conditional Custom Actions ##
 
-The Puppet Enterprise MSI package also configures `graph=true` to help
-visualize the configuration catalog.  This is not set for Puppet FOSS to be
-consistent with other platforms.
+Information specific to working with with Properties and conditionals is available at [Using Properties in Conditional
+Statements](http://msdn.microsoft.com/en-us/library/aa372435.aspx)
 
-    C:\ProgramData\PuppetLabs\puppet\etc>more puppet.conf
-    [main]
-    server=puppetmaster.vm
-    pluginsync=true
-    autoflush=true
-    archive_files=true
-    archive_file_server=puppetmaster.vm
-    graph=true
+The CustomAction can be conditional using the syntax defined at [Conditional
+Statement Syntax](http://msdn.microsoft.com/en-us/library/aa368012.aspx)
+Here's an example used in the [Remember Property
+Pattern](http://robmensching.com/blog/posts/2010/5/2/The-WiX-toolsets-Remember-Property-pattern)
+
+    <Custom Action='SaveCmdLineInstallDir' Before='AppSearch' />
+    <Custom Action='SetFromCmdLineInstallDir' After='AppSearch'>
+      CMDLINE_INSTALLDIR
+    </Custom>
+
+In this example the `SaveCmdLineInstallDir` will act unconditionally while the `SetFromCmdLineInstallDir` action will act only when the `CMDLINE_INSTALLDIR` property is set.
+
+This technique can be used to conditionally set properties that aren't
+explicitly set by the user.
+
+## Localization Strings ##
+
+The strings used throughout the installer are defined in the file
+`wix/Localization/puppet_en-us.wxl`. In the future if we support other
+languages than English we will need to create additional localization files. A convenient place to get started is the WiX source code in the `src/ext/UIExtension/wixlib/*.wxl` directory.
+
+For the time being, any customization of strings shown to the user needs to happen inside of `puppet_en-us.wxl`.
+
+In addition, customization of text styles (color, size, font) needs to have a new TextStyle defined in `wix/include/textstyles.wxi`
+
+## Documentation Links ##
+
+Start Menu Shortcuts are provided to online documentation.  The method we're employing to create these links is a little strange.  We are not using the [InternetShortcut
+Element](http://wix.sourceforge.net/manual-wix3/util_xsd_internetshortcut.htm)
+because this element does not allow us to add a description or an Icon.
+
+Instead, we use the IniFile Element to write out a file with a `.url` extension into the documentation folder of the installation directory. We then create traditional shortcuts to these special `.url` files. This allows us to add a description and an Icon to the shortcut entry.
+
+![Doc Shortcuts](http://dl.dropbox.com/u/17169007/img/screenshot_1330369100_0_documentation.png)
+
+# Authenticode Signatures
+
+## Signing the Packages ##
+
+Digitally signing the MSI is important for release.  Windows will automatically verify the authenticity of our packages if they're signed and will present a warning to the user if they're not.
+
+Here's the less scary notification when installing a signed package:
+
+![User Account Control](http://dl.dropbox.com/u/17169007/img/Screen%20Shot%202012-03-14%20at%203.40.15%20PM.png)
+
+To digitally sign the packages, the [Puppet Labs Code Signing
+Certificate](https://groups.google.com/a/puppetlabs.com/group/tech/browse_thread/thread/3d85b1da489af092#)
+should be installed into the user store on the windows build host.  If Jenkins is being used to automate the package builds, then this certificate and private key should be installed using the same account the Jenkins agent is running as.
+
+There should only be one code signing certificate installed.  The `signtool` will automatically select the right certificate if there is only one of them installed.
+
+Double clicking on the PFX file will install the certificate properly. I also recommend the certificate NOT be marked as exportable when installing it.
+
+Once the MSI packages have been built, they can be signed with the following task:
+
+    Z:\vagrant\win\puppetwinbuilder\src\puppet_for_the_win>rake windows:sign
+    signtool sign /d "Puppet Enterprise" /du "http://www.puppetlabs.com" /n "Puppet Labs" \
+      /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppetenterprise.msi
+    Done Adding Additional Store
+    Successfully signed and timestamped: puppetenterprise.msi
+    signtool sign /d "Puppet" /du "http://www.puppetlabs.com" /n "Puppet Labs" \
+      /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppet.msi
+    Done Adding Additional Store
+    Successfully signed and timestamped: puppet.msi
+
+The command the Rake task is executing will require HTTP Internet access to timestamp.verisign.com in order to get a digitally signed timestamp.
+
+SignTool
+========
+
+The [Sign Tool](http://msdn.microsoft.com/en-us/library/windows/desktop/aa387764.aspx) is distributed as part of the [Windows
+SDK](http://msdn.microsoft.com/en-us/windowsserver/bb980924.aspx) You don't need to install the full SDK to get `signtool.exe`, only the "tools" component. The SDK requires the Microsoft .NET Framework 4 to be installed as well.
+
+The puppetwinbuilder.zip `setup_env.bat` should automatically add the SDK to the PATH.  If the SDK changes versions in the future (e.g. 7.2 is released), then the PATH environment variable may not be correct and you'll need to get signtool.exe in the path yourself or update the puppetwinbuilder.zip file.
 
 # Troubleshooting #
 
 ## Missing .NET Framework ##
 
-If you receive exit code 128 when running rake build tasks and it looks like
-`candle` and `light` don't actually do anything, it's likely because the
-Microsoft .NET Framework is not installed.
+If you receive exit code 128 when running rake build tasks and it looks like `candle` and `light` don't actually do anything, it's likely because the Microsoft .NET Framework is not installed.
 
-If you try to run `candle.exe` or `light.exe` from Explorer, you might receive
-"Application Error" - The application failed to initialize properly
-(0xC0000135). Click on OK to terminate the application.  This is the same
-symptom and .NET should be installed.
+If you try to run `candle.exe` or `light.exe` from Explorer, you might receive "Application Error" - The application failed to initialize properly (0xC0000135). Click on OK to terminate the application.  This is the same symptom and .NET should be installed.
 
-In order to resolve this, please use Windows Update to install the .NET
-Framework 3.5 (Service Pack 1).
+In order to resolve this, please use Windows Update to install the .NET Framework 3.5 (Service Pack 1).
+
+# Setup Tips #
+
+To get a shared filesystem:
+
+    net use Z: "\\vmware-host\Shared Folders" /persistent:yes
 
 EOF
+
+

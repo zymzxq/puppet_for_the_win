@@ -100,23 +100,28 @@ def candle(wxs_file, flags=[])
     flags_string << " -dBUILD_UI_ONLY"
   end
   flags_string << " -dlicenseRtf=conf/windows/stage/misc/LICENSE.rtf"
+  flags_string << " -dPlatform=#{ENV['ARCH']}"
   flags_string << " " << variable_define_flags
   Dir.chdir File.join(TOPDIR, File.dirname(wxs_file)) do
-    sh "candle -ext WiXUtilExtension -ext WixUIExtension -arch x86 #{flags_string} \"#{File.basename(wxs_file)}\""
+    sh "candle -ext WiXUtilExtension -ext WixUIExtension -arch #{ENV['ARCH']} #{flags_string} \"#{File.basename(wxs_file)}\""
   end
 end
 
 # Produce a wxs file from a directory in the stagedir
 # e.g. heat('wxs/fragments/foo.wxs', 'stagedir/sys/foo')
+# note that heat doesn't have a switch for architecture and hence we don't get
+# <Component win64="yes" />, however candle.exe provides this capability as long
+# as the Platform variable is set for the Product in the .wxs file
 def heat(wxs_file, stage_dir)
   Dir.chdir TOPDIR do
     cg_name = File.basename(wxs_file.ext(''))
     dir_ref = File.basename(File.dirname(stage_dir))
+    filters_xslt = File.join(TOPDIR, 'wix/filters/filters.xslt').gsub('/','\\')
     # NOTE:  The reference specified using the -dr flag MUST exist in the
     # parent puppet.wxs file.  Otherwise, WiX won't be able to graft the
     # fragment into the right place in the package.
     dir_ref = 'INSTALLDIR' if dir_ref == 'stagedir'
-    sh "heat dir #{stage_dir} -v -ke -indent 2 -cg #{cg_name} -gg -dr #{dir_ref} -var var.StageDir -out #{wxs_file}"
+    sh "heat dir #{stage_dir} -v -ke -indent 2 -cg #{cg_name} -gg -dr #{dir_ref} -t \"#{filters_xslt}\" -var var.StageDir -out #{wxs_file}"
   end
 end
 
@@ -135,6 +140,7 @@ namespace :windows do
 
   CONFIG = YAML.load_file(ENV["config"] || "config.yaml")
   APPS = CONFIG[:repos]
+  ENV['ARCH'] = ENV['ARCH'] || 'x86'
 
   task :clean_downloads => 'downloads' do
     FileList["downloads/*"].each do |repo|
@@ -158,6 +164,7 @@ namespace :windows do
   task :checkout => :clone do
     APPS.each do |name, config|
       Dir.chdir "#{TOPDIR}/downloads/#{name}" do
+        puts "Fetching #{name} from #{config[:ref]}"
         sh 'git fetch origin'
         sh 'git fetch origin --tags'
         sh 'git clean -xfd'
@@ -180,16 +187,43 @@ namespace :windows do
 
   task :misc => 'stagedir' do
     FileUtils.cp_r("conf/windows/stage/misc", "stagedir/misc")
+    FileUtils.cp_r(FileList['downloads/puppet/ext/windows/eventlog/*.dll'], 'stagedir/misc')
   end
 
-  task :stage => [:checkout, 'stagedir', :bin, :misc] do
+  task :service => 'stagedir' do
+    mkdir_p("stagedir/service")
+    FileUtils.cp_r(FileList['downloads/puppet/ext/windows/service/*'], 'stagedir/service')
+    FileUtils.cp('downloads/mcollective/ext/windows/daemon.bat', 'stagedir/service/mco_daemon.bat') if File.exists?('downloads/mcollective/ext/windows/daemon.bat')
+  end
+
+  task :stage => [:checkout, 'stagedir', :bin, :misc, :service] do
     FileList["downloads/*"].each do |app|
       dst = "stagedir/#{File.basename(app)}"
       puts "Copying #{app} to #{dst} ..."
       FileUtils.mkdir(dst)
+      excludes = [ %r{/acceptance/*},
+                   %r{/benchmarks/*},
+                   %r{/autotest/*},
+                   %r{/docs/*},
+                   %r{/ext/*},
+                   %r{/examples/*},
+                   %r{/man/*},
+                   %r{/spec/*},
+                   %r{/tasks/*},
+                   %r{/util/*},
+                   %r{/yardoc/*},
+                   %r{/COMMITTERS.md},
+                   %r{/CONTRIBUTING.md},
+                   %r{/Gemfile},
+                   %r{/Rakefile},
+                   %r{/README.md},
+                   %r{/*.patch}
+                 ]
       # This avoids copying hidden files like .gitignore and .git
-      FileUtils.cp_r FileList["#{app}/*"], dst
+      FileUtils.cp_r(FileList["#{app}/*"].exclude(*excludes), dst, :verbose => true)
     end
+    mkdir_p('stagedir/hiera/ext')
+    FileUtils.cp('downloads/hiera/ext/hiera.yaml', 'stagedir/hiera/ext/hiera.yaml')
   end
 
   task :stage_plugins => [ :stage ] do
@@ -242,10 +276,26 @@ namespace :windows do
         end
 
         content = File.open(version_file, 'rb') { |f| f.read }
-      
+
         if product == "puppet"
-          modified = content.gsub(/(PUPPETVERSION\s*=\s*)(['"])(.*?)(['"])/) do |match|
-            "#{$1}#{$2}#{$3} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{$2}"
+          modified = content.gsub(/(PUPPETVERSION\s*=\s*)(['"])([\.\d]*)\s*(.*?)(['"])/) do |match|
+            pre         = $1
+            start_quote = $2
+            version     = $3
+            pe_version  = $4
+            end_quote   = $5
+
+            modified =
+              if pe_version =~ /\(Puppet Enterprise.*\)/
+                # rewrite as one line:
+                #   PUPPETVERSION = "3.6.2 (Puppet Enterprise 3.3.0)"
+                "#{pre}#{start_quote}#{version} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{end_quote}"
+              else
+                # rewrite as two lines:
+                #   PEVERSION = '3.3.0'
+                #   PUPPETVERSION = "3.6.2 (Puppet Enterprise 3.3.0)"
+                "PEVERSION = #{start_quote}#{ENV['PE_VERSION_STRING']}#{end_quote}\n    #{pre}#{start_quote}#{version} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{end_quote}"
+              end
           end
         elsif product == "mcollective"
           msg = 'Could not parse git-describe annotated tag for MCollective'
@@ -270,9 +320,11 @@ namespace :windows do
     OBJS = FileList['wix/**/*.wixobj']
 
     out = ENV['BRANDING'] =~ /enterprise/i ? 'puppetenterprise' : 'puppet'
+    out = "#{out}-#{ENV['ARCH']}" if ENV['ARCH'] == 'x64'
+    msi_file_name =  ENV['PKG_FILE_NAME'] || "#{out}.msi"
 
     Dir.chdir TOPDIR do
-      sh "light -ext WiXUtilExtension -ext WixUIExtension -cultures:en-us -loc wix/localization/puppet_en-us.wxl -out pkg/#{out}.msi #{OBJS}"
+      sh "light -ext WiXUtilExtension -ext WixUIExtension -cultures:en-us -loc wix/localization/puppet_en-us.wxl -out pkg/#{msi_file_name} #{OBJS}"
     end
   end
 
@@ -286,9 +338,10 @@ namespace :windows do
   # install the Windows SDK to get signtool.exe.  puppetwinbuilder.zip's
   # setup_env.bat should have added it to the PATH already.
   task :sign_pe => 'pkg' do |t|
+    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppetenterprise.msi'
     Dir.chdir TOPDIR do
       Dir.chdir "pkg" do
-        sh 'signtool sign /d "Puppet Enterprise" /du "http://www.puppetlabs.com" /n "Puppet Labs" /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppetenterprise.msi'
+        sh "signtool sign /d \"Puppet Enterprise\" /du \"http://www.puppetlabs.com\" /n \"Puppet Labs\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{msi_file_name}"
       end
     end
   end
@@ -298,9 +351,10 @@ namespace :windows do
   # install the Windows SDK to get signtool.exe.  puppetwinbuilder.zip's
   # setup_env.bat should have added it to the PATH already.
   task :sign_foss => 'pkg' do |t|
+    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet.msi'
     Dir.chdir TOPDIR do
       Dir.chdir "pkg" do
-        sh 'signtool sign /d "Puppet" /du "http://www.puppetlabs.com" /n "Puppet Labs" /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppet.msi'
+        sh "signtool sign /d \"Puppet\" /du \"http://www.puppetlabs.com\" /n \"Puppet Labs\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{msi_file_name}"
       end
     end
   end
@@ -342,16 +396,18 @@ namespace :windows do
   end
 
   desc 'Install the MSI using msiexec'
-  task :install => 'pkg/puppet.msi' do |t|
+  task :install => 'pkg' do |t|
+    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet.msi'
     Dir.chdir "pkg" do
-      sh 'msiexec /q /l*v install.txt /i puppet.msi INSTALLDIR="C:\puppet" PUPPET_MASTER_SERVER="puppetmaster" PUPPET_AGENT_CERTNAME="windows.vm"'
+      sh "msiexec /q /l*v install.txt /i #{msi_file_name} INSTALLDIR=\"C:\\puppet\" PUPPET_MASTER_SERVER=\"puppetmaster\" PUPPET_AGENT_CERTNAME=\"windows.vm\""
     end
   end
 
   desc 'Uninstall the MSI using msiexec'
-  task :uninstall => 'pkg/puppet.msi' do |t|
+  task :uninstall => 'pkg' do |t|
+    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet.msi'
     Dir.chdir "pkg" do
-      sh 'msiexec /qn /l*v uninstall.txt /x puppet.msi'
+      sh "msiexec /qn /l*v uninstall.txt /x #{msi_file_name}"
     end
   end
 end

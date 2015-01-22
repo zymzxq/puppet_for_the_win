@@ -38,10 +38,12 @@
     <Folder Include="fragments\" />
     <Folder Include="include\" />
     <Folder Include="localization\" />
+    <Folder Include="filters" />
     <Folder Include="ui\" />
     <Folder Include="ui\bitmaps\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="filters\filters.xslt" />
     <Content Include="include\puppet.wxi" />
     <Content Include="include\textstyles.wxi" />
     <Content Include="ui\bitmaps\bannrbmp.bmp" />
