@@ -220,7 +220,17 @@ namespace :windows do
     FileUtils.rm_rf(["stagedir/mcollective/lib/mcollective/vendor/json", "stagedir/mcollective/lib/mcollective/vendor/load_json.rb"])
   end
 
-  task :wxs => [ :stage, 'wix/fragments' ] do
+  task :track_versions do
+    version_tracking_file = 'stagedir/misc/versions.txt'
+    content = ""
+    FileList["downloads/*"].each do |repo|
+      content += "#{File.basename(repo)} #{describe repo}\n"
+    end
+
+    File.open(version_tracking_file, "wb") { |f| f.write(content) }
+  end
+
+  task :wxs => [ :stage, 'wix/fragments', :track_versions] do
     Rake::Task["windows:stage_plugins"].invoke
     Rake::Task["windows:remove_vendor"].invoke
     FileList["stagedir/*"].each do |staging|
