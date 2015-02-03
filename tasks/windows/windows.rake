@@ -131,7 +131,11 @@ namespace :windows do
           if config[:path]
             sh "curl -O #{config[:path]}/#{config[:archive]}"
             if config[:archive] =~ /^.*\.zip$/
-              sh "unzip #{config[:archive]} -d #{name}"
+              begin
+                sh "unzip #{config[:archive]} -d #{name}"
+              rescue
+                sh "C:\\ProgramData\\chocolatey\\bin\\7za.exe x -r -tzip -o#{name} #{config[:archive]}"
+              end
               sh "rm #{config[:archive]}"
             end
           else
