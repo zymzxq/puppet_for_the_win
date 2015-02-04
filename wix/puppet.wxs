@@ -235,7 +235,7 @@
                       Type="ownProcess"
                       ErrorControl="normal"
                       Vital="yes" 
-                      Arguments="-I&quot;[INSTALLDIR]puppet\lib;[INSTALLDIR]facter\lib;[INSTALLDIR]hiera\lib;[INSTALLDIR]mcollective\lib;[INSTALLDIR]mcollective_plugins&quot; -rubygems &quot;[INSTALLDIR]mcollective\bin\mcollectived&quot; --daemonize"
+                      Arguments="-I&quot;[INSTALLDIR]puppet\lib;[INSTALLDIR]facter\lib;[INSTALLDIR]hiera\lib;[INSTALLDIR]mcollective\lib&quot; -rubygems &quot;[INSTALLDIR]mcollective\bin\mcollectived&quot; --daemonize"
                       />
                     <ServiceControl Id="MCOStartService" Stop="both" Remove="uninstall" Name="mcollective" Wait="yes" />
                   </Component>
@@ -781,7 +781,6 @@
       <ComponentRef Id="PuppetServiceManual" />
       <ComponentRef Id="PuppetServiceDisabled" />
       <ComponentGroupRef Id="mcollective" />
-      <ComponentGroupRef Id="mcollective_plugins" />
       <ComponentRef Id="MCOConfDir" />
       <ComponentRef Id="MCOLogDir" />
       <ComponentRef Id="MCOService" />
