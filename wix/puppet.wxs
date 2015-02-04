@@ -805,7 +805,6 @@
       <!-- The MCO Parts are for Puppet Enterprise -->
       <?if $(var.PackageBrand) = enterprise ?>
       <ComponentGroupRef Id="mcollective" />
-      <ComponentGroupRef Id="mcollective_plugins" />
       <ComponentRef Id="MCOConfDir" />
       <ComponentRef Id="MCOLogDir" />
       <ComponentRef Id="MCOService" />

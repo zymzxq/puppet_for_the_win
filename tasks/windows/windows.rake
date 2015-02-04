@@ -226,12 +226,6 @@ namespace :windows do
     FileUtils.cp('downloads/hiera/ext/hiera.yaml', 'stagedir/hiera/ext/hiera.yaml')
   end
 
-  task :stage_plugins => [ :stage ] do
-    puts "Moving MCO plugins into their own directory..."
-    FileUtils.mkdir_p "stagedir/mcollective_plugins"
-    FileUtils.mv("stagedir/mcollective/plugins/mcollective", "stagedir/mcollective_plugins/")
-  end
-
   task :remove_vendor => [ :stage ] do
     puts "Removing vendored JSON from mcollective..."
     FileUtils.rm_rf(["stagedir/mcollective/lib/mcollective/vendor/json", "stagedir/mcollective/lib/mcollective/vendor/load_json.rb"])
@@ -239,7 +233,6 @@ namespace :windows do
 
   task :wxs => [ :stage, 'wix/fragments' ] do
     if ENV["BRANDING"] == "enterprise"
-      Rake::Task["windows:stage_plugins"].invoke
       Rake::Task["windows:remove_vendor"].invoke
     end
     FileList["stagedir/*"].each do |staging|
