@@ -113,7 +113,7 @@ namespace :windows do
   CONFIG = YAML.load_file(ENV["config"] || "config.yaml")
   APPS = CONFIG[:repos]
   ENV['ARCH'] = ENV['ARCH'] || 'x86'
-  ENV['PKG_FILE_NAME'] = ENV['PKG_FILE_NAME'] || "puppet-agent-#{ENV['AGENT_VERSION_STRING']}-#{ENV['ARCH']}.msi"
+  ENV['PKG_FILE_NAME'] = (ENV['PKG_FILE_NAME'] || "puppet-agent-#{ENV['AGENT_VERSION_STRING']}-#{ENV['ARCH']}.msi").gsub(/\s+/, "")
 
   task :clean_downloads => 'downloads' do
     FileList["downloads/*"].each do |repo|
@@ -300,7 +300,7 @@ namespace :windows do
     if not ENV['AGENT_VERSION_STRING']
       puts "Warning: AGENT_VERSION_STRING is not set in the environment.  Defaulting to 1.0.0"
       ENV['AGENT_VERSION_STRING'] = '1.0.0'
-      ENV['PKG_FILE_NAME'] = "puppet-agent-#{ENV['AGENT_VERSION_STRING']}-#{ENV['ARCH']}.msi"
+      ENV['PKG_FILE_NAME'] = "puppet-agent-#{ENV['AGENT_VERSION_STRING']}-#{ENV['ARCH']}.msi".gsub(/\s+/, "")
     end
     Rake::Task["windows:msi"].invoke
   end
