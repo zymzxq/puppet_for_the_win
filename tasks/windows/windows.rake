@@ -13,7 +13,6 @@ end
 
 require 'pathname'
 require 'yaml'
-require 'erb'
 require 'rake/clean'
 
 # Where we're situated in the filesystem relative to the Rakefile
@@ -60,15 +59,6 @@ end
 def describe(dir)
   @git_tags ||= Hash.new
   @git_tags[dir] ||= Dir.chdir(dir) { %x{git describe}.chomp }
-end
-
-def erb(erbfile, outfile)
-  template         = File.read(erbfile)
-  message          = ERB.new(template, nil, "-")
-  message.filename = erbfile
-  output           = message.result(binding)
-  File.open(outfile, 'wb') { |f| f.write output }
-  puts "Generated: #{outfile}"
 end
 
 def cp_p(src, dest, options={})
@@ -138,7 +128,15 @@ namespace :windows do
     APPS.each do |name, config|
       if not File.exists?("downloads/#{name}")
         Dir.chdir "#{TOPDIR}/downloads" do
-          sh "git clone #{config[:repo]} #{name}"
+          if config[:path]
+            sh "curl -O #{config[:path]}/#{config[:archive]}"
+            if config[:archive] =~ /^.*\.zip$/
+              sh "unzip #{config[:archive]} -d #{name}"
+              sh "rm #{config[:archive]}"
+            end
+          else
+            sh "git clone #{config[:repo]} #{name}"
+          end
         end
       end
     end
@@ -146,6 +144,7 @@ namespace :windows do
 
   task :checkout => :clone do
     APPS.each do |name, config|
+      next unless config[:repo]
       Dir.chdir "#{TOPDIR}/downloads/#{name}" do
         puts "Fetching #{name} from #{config[:ref]}"
         sh 'git fetch origin'
@@ -157,11 +156,6 @@ namespace :windows do
   end
 
   task :bin => 'stagedir' do
-    FileList["conf/windows/stage/bin/*.erb"].each do |template|
-      target = template.gsub(/\.erb$/,"")
-      erb(template, target)
-    end
-
     mkdir_p("stagedir/bin")
 
     # Only copy the .bat files into place

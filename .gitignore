@@ -8,7 +8,6 @@ vendor/bundle/
 .bundle/
 Gemfile.lock
 
-conf/windows/stage/bin/environment.bat
 wix/bin
 wix/obj
 *.suo
