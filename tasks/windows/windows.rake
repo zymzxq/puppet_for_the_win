@@ -134,7 +134,7 @@ namespace :windows do
               begin
                 sh "unzip #{config[:archive]} -d #{name}"
               rescue
-                sh "C:\\ProgramData\\chocolatey\\bin\\7za.exe x -r -tzip -o#{name} #{config[:archive]}"
+                sh "7za x -r -tzip -o#{name} #{config[:archive]}"
               end
               sh "rm #{config[:archive]}"
             end
