@@ -4,8 +4,12 @@
   <?define OurCompanyNameWord="PuppetLabs"?>
   <?define OurCommonProductNameWord="PuppetInstaller"?>
 
-  <!-- Component Versions.  We expect the build system to define these values
-       on the command line using `git describe` -->
+  <!--
+  <![CDATA[
+  Component Versions.  We expect the build system to define these values
+         on the command line using `git describe ––long`
+  ]]>
+  -->
   <?ifndef PuppetDescTag ?><?define PuppetDescTag="X.Y.Z-123-abcdef1" ?><?endif ?>
   <?ifndef FacterDescTag ?><?define FacterDescTag="X.Y.Z-456-fedcba9" ?><?endif ?>
 

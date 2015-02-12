@@ -56,9 +56,16 @@ def variable_define_flags
   flags.inject([]) { |a, (k,v)| a << "-d#{k}=\"#{v}\"" }.join " "
 end
 
-def describe(dir)
+def describe(dir, style = :long)
   @git_tags ||= Hash.new
-  @git_tags[dir] ||= Dir.chdir(dir) { %x{git describe}.chomp }
+  @git_tags[dir] ||= Dir.chdir(dir) do
+    {
+      :long => %x{git describe --long}.chomp,
+      :short => %x{git describe}.chomp
+    }
+  end
+
+  @git_tags[dir][style]
 end
 
 def cp_p(src, dest, options={})
@@ -258,7 +265,7 @@ namespace :windows do
     msg = 'Could not parse git-describe annotated tag for MCollective'
     match_data=[]
     @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
-      match_data = (describe 'downloads/mcollective').match re
+      match_data = (describe 'downloads/mcollective', :short).match re
     end
     mco_version="#{match_data[1]}.#{match_data[2]}.#{match_data[3]}." << (match_data[4] || 0).to_s
     modified = content.gsub("@DEVELOPMENT_VERSION@", "#{mco_version}")
