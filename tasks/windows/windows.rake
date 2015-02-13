@@ -260,7 +260,7 @@ namespace :windows do
     @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
       match_data = (describe 'downloads/mcollective').match re
     end
-    mco_version="#{match_data[1]}.#{match_data[2]}.#{match_data[3]}." << (match_data[4] || 0).to_s
+    mco_version="#{match_data[1]}.#{match_data[2]}.#{match_data[3]}"
     modified = content.gsub("@DEVELOPMENT_VERSION@", "#{mco_version}")
 
     if content == modified
