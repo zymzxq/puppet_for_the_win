@@ -223,7 +223,9 @@ namespace :windows do
     version_tracking_file = 'stagedir/misc/versions.txt'
     content = ""
     FileList["downloads/*"].each do |repo|
-      content += "#{File.basename(repo)} #{describe repo}\n"
+      ver = Dir.exists?("#{repo}/.git") ?
+        describe(repo) : File.read("#{repo}/VERSION").strip
+      content += "#{File.basename(repo)} #{ver}\n"
     end
 
     File.open(version_tracking_file, "wb") { |f| f.write(content) }
