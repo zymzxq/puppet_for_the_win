@@ -146,7 +146,14 @@ namespace :windows do
               sh "rm #{config[:archive]}"
             end
           else
-            sh "git clone #{config[:repo]} #{name}"
+            FileUtils.mkdir(name)
+            Dir.chdir "#{TOPDIR}/downloads/#{name}" do
+              sh "git init"
+              sh "git remote add origin #{config[:repo]}"
+              sh "git config pack.windowMemory 10m"
+              sh "git config pack.packSizeLimit 20m"
+              sh "git fetch"
+            end
           end
         end
       end
