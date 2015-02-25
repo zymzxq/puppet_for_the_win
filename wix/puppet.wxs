@@ -350,15 +350,13 @@
               </Component>
             </Directory>
           </Directory>
-          <Directory Id="HieraAppData" Name="hiera">
-            <Directory Id="HieraEtcDir" Name="etc">
-              <Component Id="HieraEtcDir" Permanent="yes" Guid="88DE0215-554E-44CC-A8EB-CD8C030B1695">
-                <CreateFolder />
-                <File Id="HieraConf" KeyPath="yes" Source="stagedir\hiera\ext\hiera.yaml" />
-              </Component>
-            </Directory>
-            <Directory Id="HieraVarDir" Name="var">
-              <Component Id="HieraVarDir" Permanent="yes" Guid="01C15CC4-74D1-4E33-887B-E25CA4A8EFB6">
+          <Directory Id="CodeDir" Name="code">
+            <Component Id="CodeDir" Permanent="yes" Guid="0D29EB1B-604D-4FE1-A75C-F18CC230BEED">
+              <CreateFolder />
+              <File Id="HieraConf" KeyPath="yes" Source="stagedir\hiera\ext\hiera.yaml" />
+            </Component>
+            <Directory Id="HieraDataDir" Name="hieradata">
+              <Component Id="HieraDataDir" Permanent="yes" Guid="2438387C-BEA5-47C1-8B43-46FE30E14BEA">
                 <CreateFolder />
               </Component>
             </Directory>
@@ -752,8 +750,8 @@
       <ComponentRef Id="RegistryEntries" />
       <ComponentRef Id="RegistryEntriesArchitectureDependent" />
       <ComponentRef Id="PuppetVarDir" />
-      <ComponentRef Id="HieraVarDir" />
-      <ComponentRef Id="HieraEtcDir" />
+      <ComponentRef Id="CodeDir" />
+      <ComponentRef Id="HieraDataDir" />
       <ComponentRef Id="PuppetShortcuts" />
       <ComponentRef Id="PuppetDocumentationShortcuts" />
 
