@@ -341,9 +341,6 @@
                   Directory="PuppetConfDir" />
               </Component>
             </Directory>
-            <!-- This PuppetVarDir directory is necessary to fix #12576 otherwise
-                 puppet cannot create the directories it needs since the parent
-                 does not exist. -->
             <Directory Id="PuppetVarDir" Name="var">
               <Component Id="PuppetVarDir" Permanent="yes" Guid="B95A17F3-CF5E-4EC7-859E-F10C0965645F">
                 <CreateFolder />
