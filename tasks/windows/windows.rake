@@ -223,7 +223,22 @@ namespace :windows do
     version_tracking_file = 'stagedir/misc/versions.txt'
     content = ""
     FileList["downloads/*"].each do |repo|
-      content += "#{File.basename(repo)} #{describe repo}\n"
+      is_git = File.exists?("#{repo}/.git")
+      if is_git
+        version = describe(repo)
+      else
+        version_path = Dir["#{repo}/VERSION", "#{repo}/bin/VERSION"].first
+        if !version_path
+          abort "FAIL: #{repo} is not a Git repo, and is missing a VERSION file"
+        end
+
+        version = File.read(version_path).strip
+
+        if !version || version.empty?
+          abort "FAIL: #{repo} VERSION file missing version information"
+        end
+      end
+      content += "#{File.basename(repo)} #{version}\n"
     end
 
     File.open(version_tracking_file, "wb") { |f| f.write(content) }
