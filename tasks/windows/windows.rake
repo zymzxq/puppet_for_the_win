@@ -307,6 +307,30 @@ namespace :windows do
   # High Level Tasks.  Other tasks will add themselves to these tasks
   # dependencies.
 
+  def safe_sh(cmd_line)
+    begin
+      sh cmd_line
+    rescue
+      puts "Failed to execute command line #{cmd_line}"
+    end
+  end
+
+  desc "Describe environment variables and tooling"
+  task :log_environment do |t|
+    puts "Current environment variables:"
+    ENV.each { |k, v| puts "#{k}: #{v}" }
+
+    puts "Tooling versions:\n"
+
+    safe_sh("git --version")
+    safe_sh("ruby --version")
+    safe_sh("rake --version")
+    safe_sh("curl --version")
+    safe_sh("candle -help")
+    safe_sh("unzip -v")
+    safe_sh("7za")
+  end
+
   # This is also called from the build script in the Puppet Win Builder archive.
   # This will be called AFTER the update task in a new process.
   desc "Build puppet-agent.msi"
@@ -316,6 +340,7 @@ namespace :windows do
       ENV['AGENT_VERSION_STRING'] = '1.0.0'
       ENV['PKG_FILE_NAME'] = "puppet-agent-#{ENV['AGENT_VERSION_STRING']}-#{ENV['ARCH']}.msi".gsub(/\s+/, "")
     end
+    Rake::Task["windows:log_environment"].invoke
     Rake::Task["windows:msi"].invoke
   end
 
