@@ -357,6 +357,27 @@
                 <CreateFolder />
               </Component>
             </Directory>
+            <Directory Id="EnvironmentsDir" Name="environments">
+              <Component Id="EnvironmentsDir" Permanent="yes" Guid="6a6a390a-8783-40b6-b49d-9e2b368e069d">
+                <CreateFolder />
+              </Component>
+              <Directory Id="ProductionDir" Name="production">
+                <Component Id="ProductionDir" Permanent="yes" Guid="b902efcd-756e-4340-8f13-5a79d46b93c7">
+                  <CreateFolder />
+                  <File Id="EnvironmentConf" KeyPath="yes" Source="stagedir\puppet\conf\environment.conf" />
+                </Component>
+                <Directory Id="ManifestsDir" Name="manifests">
+                  <Component Id="ManifestsDir" Permanent="yes" Guid="5484fadf-6d5e-4053-83fc-ea68918d6f2e">
+                    <CreateFolder />
+                  </Component>
+                </Directory>
+                <Directory Id="ModulesDir" Name="modules">
+                  <Component Id="ModulesDir" Permanent="yes" Guid="cbe9cc8d-3a38-4c4c-9f16-39e42093481a">
+                    <CreateFolder />
+                  </Component>
+                </Directory>
+              </Directory>
+            </Directory>
           </Directory>
         </Directory>
       </Directory>
@@ -749,6 +770,10 @@
       <ComponentRef Id="PuppetVarDir" />
       <ComponentRef Id="CodeDir" />
       <ComponentRef Id="HieraDataDir" />
+      <ComponentRef Id="EnvironmentsDir" />
+      <ComponentRef Id="ProductionDir" />
+      <ComponentRef Id="ManifestsDir" />
+      <ComponentRef Id="ModulesDir" />
       <ComponentRef Id="PuppetShortcuts" />
       <ComponentRef Id="PuppetDocumentationShortcuts" />
 
