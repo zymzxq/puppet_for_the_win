@@ -275,31 +275,7 @@ namespace :windows do
     end
   end
 
-  task :version do
-    if File.exists?("stagedir/mcollective/lib/mcollective.rb")
-      version_file = "stagedir/mcollective/lib/mcollective.rb"
-    else
-      raise ArgumentError, "Could not patch mcollective version, no version file found"
-    end
-
-    content = File.open(version_file, 'rb') { |f| f.read }
-
-    msg = 'Could not parse git-describe annotated tag for MCollective'
-    match_data=[]
-    @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
-      match_data = (describe 'downloads/mcollective', :short).match re
-    end
-    mco_version="#{match_data[1]}.#{match_data[2]}.#{match_data[3]}"
-    modified = content.gsub("@DEVELOPMENT_VERSION@", "#{mco_version}")
-
-    if content == modified
-      raise ArgumentError, "(#12975) Could not patch mcollective.rb.  Check the regular expression around this line in the backtrace against #{version_file}"
-    end
-
-    File.open(version_file, "wb") { |f| f.write(modified) }
-  end
-
-  task :msi => [:wixobj, :wixobj_ui, :version] do
+  task :msi => [:wixobj, :wixobj_ui] do
     OBJS = FileList['wix/**/*.wixobj']
     Dir.chdir TOPDIR do
       sh "light -ext WiXUtilExtension -ext WixUIExtension -cultures:en-us -loc wix/localization/puppet_en-us.wxl -out pkg/#{ENV['PKG_FILE_NAME']} #{OBJS}"
