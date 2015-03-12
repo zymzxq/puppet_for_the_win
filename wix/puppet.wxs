@@ -357,6 +357,11 @@
                 <CreateFolder />
               </Component>
             </Directory>
+            <Directory Id="CodeModulesDir" Name="modules">
+              <Component Id="CodeModulesDir" Permanent="yes" Guid="ae4a85a4-a305-4c95-b254-c2f06c586482">
+                <CreateFolder />
+              </Component>
+            </Directory>
             <Directory Id="EnvironmentsDir" Name="environments">
               <Component Id="EnvironmentsDir" Permanent="yes" Guid="6a6a390a-8783-40b6-b49d-9e2b368e069d">
                 <CreateFolder />
@@ -770,6 +775,7 @@
       <ComponentRef Id="PuppetVarDir" />
       <ComponentRef Id="CodeDir" />
       <ComponentRef Id="HieraDataDir" />
+      <ComponentRef Id="CodeModulesDir" />
       <ComponentRef Id="EnvironmentsDir" />
       <ComponentRef Id="ProductionDir" />
       <ComponentRef Id="ManifestsDir" />
