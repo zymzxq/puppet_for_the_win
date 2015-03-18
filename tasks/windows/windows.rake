@@ -226,12 +226,6 @@ namespace :windows do
     FileUtils.cp('downloads/hiera/ext/hiera.yaml', 'stagedir/hiera/ext/hiera.yaml')
   end
 
-  task :stage_plugins => [ :stage ] do
-    puts "Moving MCO plugins into their own directory..."
-    FileUtils.mkdir_p "stagedir/mcollective_plugins"
-    FileUtils.mv("stagedir/mcollective/plugins/mcollective", "stagedir/mcollective_plugins/")
-  end
-
   task :remove_vendor => [ :stage ] do
     puts "Removing vendored JSON from mcollective..."
     FileUtils.rm_rf(["stagedir/mcollective/lib/mcollective/vendor/json", "stagedir/mcollective/lib/mcollective/vendor/load_json.rb"])
@@ -239,7 +233,6 @@ namespace :windows do
 
   task :wxs => [ :stage, 'wix/fragments' ] do
     if ENV["BRANDING"] == "enterprise"
-      Rake::Task["windows:stage_plugins"].invoke
       Rake::Task["windows:remove_vendor"].invoke
     end
     FileList["stagedir/*"].each do |staging|
@@ -266,53 +259,39 @@ namespace :windows do
 
   task :version do
     if ENV['PE_VERSION_STRING']
-      ["puppet", "mcollective"].each do | product |
-        if File.exists?("stagedir/#{product}/lib/#{product}/version.rb")
-          version_file = "stagedir/#{product}/lib/#{product}/version.rb"
-        elsif File.exists?("stagedir/#{product}/lib/#{product}.rb")
-          version_file = "stagedir/#{product}/lib/#{product}.rb"
-        else
-          raise ArgumentError, "Could not patch #{product} version, no version file found"
-        end
-
-        content = File.open(version_file, 'rb') { |f| f.read }
-
-        if product == "puppet"
-          modified = content.gsub(/(PUPPETVERSION\s*=\s*)(['"])([\.\d]*)\s*(.*?)(['"])/) do |match|
-            pre         = $1
-            start_quote = $2
-            version     = $3
-            pe_version  = $4
-            end_quote   = $5
-
-            modified =
-              if pe_version =~ /\(Puppet Enterprise.*\)/
-                # rewrite as one line:
-                #   PUPPETVERSION = "3.6.2 (Puppet Enterprise 3.3.0)"
-                "#{pre}#{start_quote}#{version} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{end_quote}"
-              else
-                # rewrite as two lines:
-                #   PEVERSION = '3.3.0'
-                #   PUPPETVERSION = "3.6.2 (Puppet Enterprise 3.3.0)"
-                "PEVERSION = #{start_quote}#{ENV['PE_VERSION_STRING']}#{end_quote}\n    #{pre}#{start_quote}#{version} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{end_quote}"
-              end
-          end
-        elsif product == "mcollective"
-          msg = 'Could not parse git-describe annotated tag for MCollective'
-          match_data=[]
-          @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
-            match_data = (describe 'downloads/mcollective').match re
-          end
-          mco_version="#{match_data[1]}.#{match_data[2]}.#{match_data[3]}." << (match_data[4] || 0).to_s
-          modified = content.gsub("@DEVELOPMENT_VERSION@", "#{mco_version}")
-        end
-
-        if content == modified
-          raise ArgumentError, "(#12975) Could not patch #{product}.rb.  Check the regular expression around this line in the backtrace against #{version_file}"
-        end
-
-        File.open(version_file, "wb") { |f| f.write(modified) }
+      if File.exists?("stagedir/puppet/lib/puppet/version.rb")
+        version_file = "stagedir/puppet/lib/puppet/version.rb"
+      else
+        raise ArgumentError, "Could not patch puppet version, no version file found"
       end
+
+      content = File.open(version_file, 'rb') { |f| f.read }
+
+      modified = content.gsub(/(PUPPETVERSION\s*=\s*)(['"])([\.\d]*)\s*(.*?)(['"])/) do |match|
+        pre         = $1
+        start_quote = $2
+        version     = $3
+        pe_version  = $4
+        end_quote   = $5
+
+        modified =
+          if pe_version =~ /\(Puppet Enterprise.*\)/
+            # rewrite as one line:
+            #   PUPPETVERSION = "3.6.2 (Puppet Enterprise 3.3.0)"
+            "#{pre}#{start_quote}#{version} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{end_quote}"
+          else
+            # rewrite as two lines:
+            #   PEVERSION = '3.3.0'
+            #   PUPPETVERSION = "3.6.2 (Puppet Enterprise 3.3.0)"
+            "PEVERSION = #{start_quote}#{ENV['PE_VERSION_STRING']}#{end_quote}\n    #{pre}#{start_quote}#{version} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{end_quote}"
+          end
+        end
+
+      if content == modified
+        raise ArgumentError, "(#12975) Could not patch puppet.rb.  Check the regular expression around this line in the backtrace against #{version_file}"
+      end
+
+      File.open(version_file, "wb") { |f| f.write(modified) }
     end
   end
 

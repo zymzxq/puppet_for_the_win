@@ -21,7 +21,6 @@ SET FACTER_DIR=%PL_BASEDIR%\facter
 SET HIERA_DIR=%PL_BASEDIR%\hiera
 <%- if ENV["BRANDING"] == "enterprise" -%>
 SET MCOLLECTIVE_DIR=%PL_BASEDIR%\mcollective
-SET MCOLLECTIVE_PLUGIN_DIR=%PL_BASEDIR%\mcollective_plugins
 <% end -%>
 
 <%- if ENV["BRANDING"] == "enterprise" -%>
@@ -32,7 +31,7 @@ SET PATH=%PUPPET_DIR%\bin;%FACTER_DIR%\bin;%HIERA_DIR%\bin;%PL_BASEDIR%\bin;%PL_
 
 <%- if ENV["BRANDING"] == "enterprise" -%>
 REM Set the RUBY LOAD_PATH using the RUBYLIB environment variable
-SET RUBYLIB=%PUPPET_DIR%\lib;%FACTER_DIR%\lib;%HIERA_DIR%\lib;%MCOLLECTIVE_DIR%\lib;%MCOLLECTIVE_PLUGIN_DIR%;%RUBYLIB%;
+SET RUBYLIB=%PUPPET_DIR%\lib;%FACTER_DIR%\lib;%HIERA_DIR%\lib;%MCOLLECTIVE_DIR%\lib;%RUBYLIB%;
 <%- else -%>
 REM Set the RUBY LOAD_PATH using the RUBYLIB environment variable
 SET RUBYLIB=%PUPPET_DIR%\lib;%FACTER_DIR%\lib;%HIERA_DIR%\lib;%RUBYLIB%;
