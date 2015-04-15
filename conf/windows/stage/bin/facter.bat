@@ -3,4 +3,4 @@ SETLOCAL
 
 call "%~dp0environment.bat" %0 %*
 
-ruby -S -- "%SCRIPT_NAME%" %*
+"%FACTERDIR%\bin\facter.exe" %*
