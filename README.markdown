@@ -31,23 +31,11 @@ necessary tools, e.g. git, wix (heat, candle, and light), etc.
 
 Puppet For The Win composes an MSI from several different repositories. You will need to specify a configuration file to build it.
 
-## Open Source
+## Puppet Agent
 
-To build Puppet open source:
+To build Puppet agent:
 
-    C:\work\puppet_for_the_win>rake windows:build CONFIG=foss-stable.yaml
-
-## Puppet Enterprise
-
-To build Puppet Enterprise:
-
-    C:\work\puppet_for_the_win>rake windows:buildenterprise PE_VERSION_STRING=2.7.0 CONFIG=pe2.7.yaml
-
-Note that the `PE_VERSION_STRING` is needed to patch the puppet version source file.
-
-## Order Dependent Builds #
-
-The builds are order dependent. Build Puppet Enterprise after building Puppet FOSS, but not the other way around:
+    C:\work\puppet_for_the_win>rake windows:build AGENT_VERSION_STRING=1.0.0 CONFIG=foss-stable.yaml
 
 # User Facing Customizations #
 
@@ -65,7 +53,7 @@ The following MSI public properties are supported:
 
 To install silently on the command line:
 
-    msiexec /qn /l*v install.txt /i puppet.msi INSTALLDIR="C:\puppet" PUPPET_MASTER_SERVER="puppetmaster.lan"
+    msiexec /qn /l*v install.txt /i puppet-agent.msi INSTALLDIR="C:\puppet" PUPPET_MASTER_SERVER="puppetmaster.lan"
 
 Note that msiexec will execute asynchronously. If you want the install to execute synchronously on the command line, prepend `start /w` as follows:
 
@@ -173,14 +161,10 @@ Double clicking on the PFX file will install the certificate properly. I also re
 Once the MSI packages have been built, they can be signed with the following task:
 
     Z:\vagrant\win\puppetwinbuilder\src\puppet_for_the_win>rake windows:sign
-    signtool sign /d "Puppet Enterprise" /du "http://www.puppetlabs.com" /n "Puppet Labs" \
-      /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppetenterprise.msi
-    Done Adding Additional Store
-    Successfully signed and timestamped: puppetenterprise.msi
     signtool sign /d "Puppet" /du "http://www.puppetlabs.com" /n "Puppet Labs" \
-      /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppet.msi
+      /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppet-agent.msi
     Done Adding Additional Store
-    Successfully signed and timestamped: puppet.msi
+    Successfully signed and timestamped: puppet-agent.msi
 
 The command the Rake task is executing will require HTTP Internet access to timestamp.verisign.com in order to get a digitally signed timestamp.
 

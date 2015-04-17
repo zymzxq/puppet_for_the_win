@@ -13,7 +13,6 @@ end
 
 require 'pathname'
 require 'yaml'
-require 'erb'
 require 'rake/clean'
 
 # Where we're situated in the filesystem relative to the Rakefile
@@ -21,72 +20,52 @@ TOPDIR=File.expand_path(File.join(File.dirname(__FILE__), "..", ".."))
 
 # This method should be called by candle to figure out the list of variables
 # we're defining "outside" the build system.  Git describe and what have you.
-# This is ultimately set by the environment variable BRANDING which could be
-# foss|enterprise
 def variable_define_flags
   flags = Hash.new
   flags['PuppetDescTag'] = describe 'downloads/puppet'
   flags['FacterDescTag'] = describe 'downloads/facter'
   flags['HieraDescTag']  = describe 'downloads/hiera'
+  flags['MCODescTag']  = describe 'downloads/mcollective'
 
   # The regular expression with back reference groups for version string
-  # parsing.  We re-use this against either git-describe on Puppet or on
-  # ENV['PE_VERSION_STRING'] which should match the same pattern.  NOTE that we
-  # can only use numbers in the product version and that product version
-  # impacts major upgrades: ProductVersion Property is defined as
-  # [0-255].[0-255].[0-65535] See:
+  # parsing.  We use this against on ENV['AGENT_VERSION_STRING'] which
+  # should match the same pattern.  NOTE that we can only use numbers in
+  # the product version and that product version impacts major upgrades:
+  # ProductVersion Property is defined as [0-255].[0-255].[0-65535] See:
   # http://stackoverflow.com/questions/9312221/msi-version-numbers
-  # This regular expression focuses on the major numbers and discards things like "rc1" in the string
+  # This regular expression focuses on the major numbers and discards
+  # things like "rc1" in the string
   @version_regexps = [
     /(\d+)[^.]*?\.(\d+)[^.]*?\.(\d+)[^.]*?-(\d+)-(.*)/,
     /(\d+)[^.]*?\.(\d+)[^.]*?\.(\d+)[^.]*?\.(\d+)/,
     /(\d+)[^.]*?\.(\d+)[^.]*?\.(\d+)[^.]*?/,
   ]
 
-  case ENV['BRANDING']
-  when /enterprise/i
-    flags['PackageBrand'] = "enterprise"
-    msg = "Could not parse PE_VERSION_STRING env variable.  Set it with something like PE_VERSION_STRING=2.5.0"
-    flags['MCODescTag']  = describe 'downloads/mcollective'
-    # The Package Version components for PE
-    match_data = nil
-    @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
-      match_data = ENV['PE_VERSION_STRING'].match re
-    end
-    flags['MajorVersion'] = match_data[1]
-    flags['MinorVersion'] = match_data[2]
-    flags['BuildVersion'] = match_data[3]
-    flags['Revision'] = match_data[4] || 0
-  else
-    flags['PackageBrand'] = "foss"
-    msg = "Could not parse git-describe annotated tag for Puppet"
-    # The Package Version components for FOSS
-    match_data = nil
-    @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
-      match_data = flags['PuppetDescTag'].match re
-    end
-    flags['MajorVersion'] = match_data[1]
-    flags['MinorVersion'] = match_data[2]
-    flags['BuildVersion'] = match_data[3]
-    flags['Revision'] = match_data[4] || 0
+  msg = "Could not parse AGENT_VERSION_STRING env variable.  Set it with something like AGENT_VERSION_STRING=1.0.0"
+  # The Package Version components for PE
+  match_data = nil
+  @version_regexps.find(lambda { raise ArgumentError, msg }) do |re|
+    match_data = ENV['AGENT_VERSION_STRING'].match re
   end
+  flags['MajorVersion'] = match_data[1]
+  flags['MinorVersion'] = match_data[2]
+  flags['BuildVersion'] = match_data[3]
+  flags['Revision'] = match_data[4] || 0
 
   # Return the string of flags suitable for candle
   flags.inject([]) { |a, (k,v)| a << "-d#{k}=\"#{v}\"" }.join " "
 end
 
-def describe(dir)
+def describe(dir, style = :long)
   @git_tags ||= Hash.new
-  @git_tags[dir] ||= Dir.chdir(dir) { %x{git describe}.chomp }
-end
+  @git_tags[dir] ||= Dir.chdir(dir) do
+    {
+      :long => %x{git describe --long}.chomp,
+      :short => %x{git describe}.chomp
+    }
+  end
 
-def erb(erbfile, outfile)
-  template         = File.read(erbfile)
-  message          = ERB.new(template, nil, "-")
-  message.filename = erbfile
-  output           = message.result(binding)
-  File.open(outfile, 'wb') { |f| f.write output }
-  puts "Generated: #{outfile}"
+  @git_tags[dir][style]
 end
 
 def cp_p(src, dest, options={})
@@ -141,6 +120,7 @@ namespace :windows do
   CONFIG = YAML.load_file(ENV["config"] || "config.yaml")
   APPS = CONFIG[:repos]
   ENV['ARCH'] = ENV['ARCH'] || 'x86'
+  ENV['PKG_FILE_NAME'] = ENV['PKG_FILE_NAME'] || "puppet-agent-#{ENV['AGENT_VERSION_STRING']}-#{ENV['ARCH']}.msi"
 
   task :clean_downloads => 'downloads' do
     FileList["downloads/*"].each do |repo|
@@ -155,7 +135,26 @@ namespace :windows do
     APPS.each do |name, config|
       if not File.exists?("downloads/#{name}")
         Dir.chdir "#{TOPDIR}/downloads" do
-          sh "git clone #{config[:repo]} #{name}"
+          if config[:path]
+            sh "curl -O #{config[:path]}/#{config[:archive]}"
+            if config[:archive] =~ /^.*\.zip$/
+              begin
+                sh "unzip #{config[:archive]} -d #{name}"
+              rescue
+                sh "7za x -r -tzip -o#{name} #{config[:archive]}"
+              end
+              sh "rm #{config[:archive]}"
+            end
+          else
+            FileUtils.mkdir(name)
+            Dir.chdir "#{TOPDIR}/downloads/#{name}" do
+              sh "git init"
+              sh "git remote add origin #{config[:repo]}"
+              sh "git config pack.windowMemory 10m"
+              sh "git config pack.packSizeLimit 20m"
+              sh "git fetch"
+            end
+          end
         end
       end
     end
@@ -163,6 +162,7 @@ namespace :windows do
 
   task :checkout => :clone do
     APPS.each do |name, config|
+      next unless config[:repo]
       Dir.chdir "#{TOPDIR}/downloads/#{name}" do
         puts "Fetching #{name} from #{config[:ref]}"
         sh 'git fetch origin'
@@ -174,15 +174,11 @@ namespace :windows do
   end
 
   task :bin => 'stagedir' do
-    FileList["conf/windows/stage/bin/*.erb"].each do |template|
-      target = template.gsub(/\.erb$/,"")
-      erb(template, target)
-    end
-
     mkdir_p("stagedir/bin")
 
     # Only copy the .bat files into place
     cp_p(FileList["conf/windows/stage/bin/*.bat"], "stagedir/bin/")
+    FileUtils.cp('downloads/mcollective/ext/windows/mco.bat', 'stagedir/bin/mco.bat')
   end
 
   task :misc => 'stagedir' do
@@ -231,10 +227,33 @@ namespace :windows do
     FileUtils.rm_rf(["stagedir/mcollective/lib/mcollective/vendor/json", "stagedir/mcollective/lib/mcollective/vendor/load_json.rb"])
   end
 
-  task :wxs => [ :stage, 'wix/fragments' ] do
-    if ENV["BRANDING"] == "enterprise"
-      Rake::Task["windows:remove_vendor"].invoke
+  task :track_versions do
+    version_tracking_file = 'stagedir/misc/versions.txt'
+    content = ""
+    FileList["downloads/*"].each do |repo|
+      is_git = File.exists?("#{repo}/.git")
+      if is_git
+        version = describe(repo)
+      else
+        version_path = Dir["#{repo}/VERSION", "#{repo}/bin/VERSION"].first
+        if !version_path
+          abort "FAIL: #{repo} is not a Git repo, and is missing a VERSION file"
+        end
+
+        version = File.read(version_path).strip
+
+        if !version || version.empty?
+          abort "FAIL: #{repo} VERSION file missing version information"
+        end
+      end
+      content += "#{File.basename(repo)} #{version}\n"
     end
+
+    File.open(version_tracking_file, "wb") { |f| f.write(content) }
+  end
+
+  task :wxs => [ :stage, 'wix/fragments', :track_versions] do
+    Rake::Task["windows:remove_vendor"].invoke
     FileList["stagedir/*"].each do |staging|
       name = File.basename(staging)
       heat("wix/fragments/#{name}.wxs", staging)
@@ -257,83 +276,21 @@ namespace :windows do
     end
   end
 
-  task :version do
-    if ENV['PE_VERSION_STRING']
-      if File.exists?("stagedir/puppet/lib/puppet/version.rb")
-        version_file = "stagedir/puppet/lib/puppet/version.rb"
-      else
-        raise ArgumentError, "Could not patch puppet version, no version file found"
-      end
-
-      content = File.open(version_file, 'rb') { |f| f.read }
-
-      modified = content.gsub(/(PUPPETVERSION\s*=\s*)(['"])([\.\d]*)\s*(.*?)(['"])/) do |match|
-        pre         = $1
-        start_quote = $2
-        version     = $3
-        pe_version  = $4
-        end_quote   = $5
-
-        modified =
-          if pe_version =~ /\(Puppet Enterprise.*\)/
-            # rewrite as one line:
-            #   PUPPETVERSION = "3.6.2 (Puppet Enterprise 3.3.0)"
-            "#{pre}#{start_quote}#{version} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{end_quote}"
-          else
-            # rewrite as two lines:
-            #   PEVERSION = '3.3.0'
-            #   PUPPETVERSION = "3.6.2 (Puppet Enterprise 3.3.0)"
-            "PEVERSION = #{start_quote}#{ENV['PE_VERSION_STRING']}#{end_quote}\n    #{pre}#{start_quote}#{version} (Puppet Enterprise #{ENV['PE_VERSION_STRING']})#{end_quote}"
-          end
-        end
-
-      if content == modified
-        raise ArgumentError, "(#12975) Could not patch puppet.rb.  Check the regular expression around this line in the backtrace against #{version_file}"
-      end
-
-      File.open(version_file, "wb") { |f| f.write(modified) }
-    end
-  end
-
-  task :msi => [:wixobj, :wixobj_ui, :version] do
+  task :msi => [:wixobj, :wixobj_ui] do
     OBJS = FileList['wix/**/*.wixobj']
-
-    out = ENV['BRANDING'] =~ /enterprise/i ? 'puppetenterprise' : 'puppet'
-    out = "#{out}-#{ENV['ARCH']}" if ENV['ARCH'] == 'x64'
-    msi_file_name =  ENV['PKG_FILE_NAME'] || "#{out}.msi"
-
     Dir.chdir TOPDIR do
-      sh "light -ext WiXUtilExtension -ext WixUIExtension -cultures:en-us -loc wix/localization/puppet_en-us.wxl -out pkg/#{msi_file_name} #{OBJS}"
+      sh "light -ext WiXUtilExtension -ext WixUIExtension -cultures:en-us -loc wix/localization/puppet_en-us.wxl -out pkg/#{ENV['PKG_FILE_NAME']} #{OBJS}"
     end
   end
 
-  # Sign all packages
-  desc "Sign all MSI packages"
-  task :sign => [ :sign_pe, :sign_foss ]
-
-  # Digitally sign the MSI package
-  desc "Sign the PE msi package"
+  desc "Sign the agent msi package"
   # signtool.exe must be in your path for this task to work.  You'll need to
   # install the Windows SDK to get signtool.exe.  puppetwinbuilder.zip's
   # setup_env.bat should have added it to the PATH already.
-  task :sign_pe => 'pkg' do |t|
-    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppetenterprise.msi'
+  task :sign => 'pkg' do |t|
     Dir.chdir TOPDIR do
       Dir.chdir "pkg" do
-        sh "signtool sign /d \"Puppet Enterprise\" /du \"http://www.puppetlabs.com\" /n \"Puppet Labs\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{msi_file_name}"
-      end
-    end
-  end
-
-  desc "Sign the FOSS msi package"
-  # signtool.exe must be in your path for this task to work.  You'll need to
-  # install the Windows SDK to get signtool.exe.  puppetwinbuilder.zip's
-  # setup_env.bat should have added it to the PATH already.
-  task :sign_foss => 'pkg' do |t|
-    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet.msi'
-    Dir.chdir TOPDIR do
-      Dir.chdir "pkg" do
-        sh "signtool sign /d \"Puppet\" /du \"http://www.puppetlabs.com\" /n \"Puppet Labs\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{msi_file_name}"
+        sh "signtool sign /d \"Puppet\" /du \"http://www.puppetlabs.com\" /n \"Puppet Labs\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{ENV['PKG_FILE_NAME']}"
       end
     end
   end
@@ -342,22 +299,40 @@ namespace :windows do
   # High Level Tasks.  Other tasks will add themselves to these tasks
   # dependencies.
 
-  # This is also called from the build script in the Puppet Win Builder archive.
-  # This will be called AFTER the update task in a new process.
-  desc "Build puppet.msi"
-  task :build => :clean do |t|
-    ENV['BRANDING'] = 'foss'
-    ENV['PE_VERSION_STRING'] = nil
-    Rake::Task["windows:msi"].invoke
+  def safe_sh(cmd_line)
+    begin
+      sh cmd_line
+    rescue
+      puts "Failed to execute command line #{cmd_line}"
+    end
   end
 
-  desc "Build puppetenterprise.msi"
-  task :buildenterprise => :clean do |t|
-    ENV['BRANDING'] = "enterprise"
-    if not ENV['PE_VERSION_STRING']
-      puts "Warning: PE_VERSION_STRING is not set in the environment.  Defaulting to 2.5.0"
-      ENV['PE_VERSION_STRING'] = '2.5.0'
+  desc "Describe environment variables and tooling"
+  task :log_environment do |t|
+    puts "Current environment variables:"
+    ENV.each { |k, v| puts "#{k}: #{v}" }
+
+    puts "Tooling versions:\n"
+
+    safe_sh("git --version")
+    safe_sh("ruby --version")
+    safe_sh("rake --version")
+    safe_sh("curl --version")
+    safe_sh("candle -help")
+    safe_sh("unzip -v")
+    safe_sh("7za")
+  end
+
+  # This is also called from the build script in the Puppet Win Builder archive.
+  # This will be called AFTER the update task in a new process.
+  desc "Build puppet-agent.msi"
+  task :build => :clean do |t|
+    if not ENV['AGENT_VERSION_STRING']
+      puts "Warning: AGENT_VERSION_STRING is not set in the environment.  Defaulting to 1.0.0"
+      ENV['AGENT_VERSION_STRING'] = '1.0.0'
+      ENV['PKG_FILE_NAME'] = "puppet-agent-#{ENV['AGENT_VERSION_STRING']}-#{ENV['ARCH']}.msi"
     end
+    Rake::Task["windows:log_environment"].invoke
     Rake::Task["windows:msi"].invoke
   end
 
@@ -376,17 +351,15 @@ namespace :windows do
 
   desc 'Install the MSI using msiexec'
   task :install => 'pkg' do |t|
-    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet.msi'
     Dir.chdir "pkg" do
-      sh "msiexec /q /l*v install.txt /i #{msi_file_name} INSTALLDIR=\"C:\\puppet\" PUPPET_MASTER_SERVER=\"puppetmaster\" PUPPET_AGENT_CERTNAME=\"windows.vm\""
+      sh "msiexec /q /l*v install.txt /i #{ENV['PKG_FILE_NAME']} INSTALLDIR=\"C:\\puppet\" PUPPET_MASTER_SERVER=\"puppetmaster\" PUPPET_AGENT_CERTNAME=\"windows.vm\""
     end
   end
 
   desc 'Uninstall the MSI using msiexec'
   task :uninstall => 'pkg' do |t|
-    msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet.msi'
     Dir.chdir "pkg" do
-      sh "msiexec /qn /l*v uninstall.txt /x #{msi_file_name}"
+      sh "msiexec /qn /l*v uninstall.txt /x #{ENV['PKG_FILE_NAME']}"
     end
   end
 end

@@ -24,6 +24,7 @@
   <ItemGroup>
     <Compile Include="fragments\bin.wxs" />
     <Compile Include="fragments\facter.wxs" />
+    <Compile Include="fragments\cfacter.wxs" />
     <Compile Include="fragments\hiera.wxs" />
     <Compile Include="fragments\misc.wxs" />
     <Compile Include="fragments\puppet.wxs" />

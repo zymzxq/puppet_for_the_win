@@ -15,7 +15,7 @@
   Name is made of localized product name and version number.
   -->
   <Product Id="$(var.ProductCode)" UpgradeCode="$(var.UpgradeCode)"
-    Name="$(var.OurProductName)$(var.OurProductPlatformText)"
+    Name="$(var.OurProductName) Agent$(var.OurProductPlatformText)"
     Language='1033'
     Codepage='1252'
     Version="$(var.ProductVersionNumber)"
@@ -32,9 +32,7 @@
 
     <util:Group Id="AdminGroup" Name="Administrators"/>
 
-    <!-- We allow "downgrades" to support Puppet to Puppet Enterprise
-         "upgrades" since these versions will not compare well.  e.g. we need
-         to upgrade from Puppet 2.7.10 to Puppet Enterprise 2.5.0 -->
+    <!-- We allow "downgrades" to support Puppet to Puppet Agent -->
     <MajorUpgrade AllowDowngrades="yes" />
 
     <!-- Note, this UI element must come _after_ the Package element -->
@@ -91,6 +89,14 @@
               WorkingDirectory="bin">
               <Icon Id="FacterShortcutIcon" SourceFile="conf\windows\stage\misc\puppetlabs.ico"/>
             </Shortcut>
+            <Shortcut Id="CFacterShortcut"
+              Name="Run CFacter"
+              Description="Run CFacter in an interactive command window"
+              Target="[INSTALLDIR]bin\run_cfacter_interactive.bat"
+              Icon="CFacterShortcutIcon"
+              WorkingDirectory="bin">
+              <Icon Id="CFacterShortcutIcon" SourceFile="conf\windows\stage\misc\puppetlabs.ico"/>
+            </Shortcut>
             <Shortcut Id="PuppetShellShortcut"
               Name="Start Command Prompt with Puppet"
               Description="Start a Command Prompt with Puppet already in the PATH and RUBYLIB load path."
@@ -102,7 +108,7 @@
             </Shortcut>
             <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
             <!-- This registry entry is required to be a keypath for this component -->
-            <RegistryValue Root="HKCU" Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurProductName)"
+            <RegistryValue Root="HKCU" Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurProductNameWord)"
               Name="installed" Value="1" Type="integer" KeyPath="yes" />
           </Component>
           <Directory Id='PuppetShortcutDocumentationDir' Name="Documentation">
@@ -212,6 +218,27 @@
                   />
                     <ServiceControl Id="ServiceControlOptionsDisabled" Stop="both" Remove="uninstall" Name="$(var.PuppetServiceName)" Wait="yes" />
                   </Component>
+                  <Component Id='MCOService' Guid="7601FCEA-90B3-CC69-6A69-4087FBC7292D" Win64="$(var.Win64)">
+                    <File Id="RubyWExe" KeyPath="yes" Source="stagedir\sys\ruby\bin\rubyw.exe" />
+                    <!-- This service is installed with start set to demand because
+                    it won't be correctly configured to start right away. The
+                    puppet run that configures mcollective will allow it to start
+                    and set it to automatic -->
+                    <ServiceInstall Id="MCOServiceInstaller"
+                      Account="[PUPPET_AGENT_ACCOUNT_DOMAIN]\[PUPPET_AGENT_ACCOUNT_USER]"
+                      Password="[PUPPET_AGENT_ACCOUNT_PASSWORD]"
+                      Description="Puppet Labs server orchestration framework"
+                      DisplayName="Marionette Collective Server"
+                      Interactive="no"
+                      Name="mcollective"
+                      Start="demand"
+                      Type="ownProcess"
+                      ErrorControl="normal"
+                      Vital="yes" 
+                      Arguments="-I&quot;[INSTALLDIR]puppet\lib;[INSTALLDIR]facter\lib;[INSTALLDIR]hiera\lib;[INSTALLDIR]mcollective\lib&quot; -rubygems &quot;[INSTALLDIR]mcollective\bin\mcollectived&quot; --daemonize"
+                      />
+                    <ServiceControl Id="MCOStartService" Stop="both" Remove="uninstall" Name="mcollective" Wait="yes" />
+                  </Component>
                 </Directory>
               </Directory>
             </Directory>
@@ -226,28 +253,6 @@
                 <CreateFolder />
                 <File Id="PuppetDaemon" KeyPath="yes" Source="stagedir\service\daemon.rb" />
               </Component>
-              <!-- mcollective is only installed for Puppet Enterprise -->
-              <?if $(var.PackageBrand) = enterprise ?>
-              <Component Id='MCOService' Guid="7601FCEA-90B3-CC69-6A69-4087FBC7292D" Win64="$(var.Win64)">
-                <File Id="MCODaemonBat" KeyPath="yes" Source="stagedir\service\mco_daemon.bat" />
-                <!-- This service is installed with start set to demand because
-                it won't be correctly configured to start right away. The
-                puppet run that configures mcollective will allow it to start
-                and set it to automatic -->
-                <ServiceInstall Id="MCOServiceInstaller"
-                  Account="LocalSystem"
-                  Description="Puppet Labs server orchestration framework"
-                  DisplayName="Marionette Collective Server"
-                  Interactive="no"
-                  Name="pe-mcollective"
-                  Start="demand"
-                  Type="ownProcess"
-                  ErrorControl="normal"
-                  Vital="yes"
-                  />
-                <ServiceControl Id="MCOStartService" Stop="both" Remove="uninstall" Name="pe-mcollective" Wait="yes" />
-              </Component>
-              <?endif?>
             </Directory>
           </Directory>
         </Directory>
@@ -265,8 +270,6 @@
               </Component>
             </Directory>
           </Directory>
-          <!-- mcollective is only installed for Puppet Enterprise -->
-          <?if $(var.PackageBrand) = enterprise ?>
           <Directory Id="MCOAppData" Name="mcollective">
             <Directory Id="MCOConfDir" Name="etc">
               <Component Id="MCOConfDir" Permanent="yes" Guid="3E904914-17C7-138C-F5DF-280F680E067C">
@@ -281,7 +284,6 @@
               </Directory>
             </Directory>
           </Directory>
-          <?endif ?>
           <Directory Id="PuppetAppData" Name="puppet">
             <Directory Id="PuppetConfDir" Name="etc">
               <!-- This is a permanent directory, do not remove on uninstall -->
@@ -302,27 +304,6 @@
                   Section="main"
                   Key="autoflush" Value="true"
                   Directory="PuppetConfDir" />
-                <!-- Only set these puppet.conf entries for Puppet Enterprise.
-                     This is to make Puppet FOSS consistent with Puppet FOSS on
-                     other platforms and Puppet Enterprise consistent with PE
-                     on other platforms. -->
-                <?if $(var.PackageBrand) = enterprise ?>
-                <IniFile Id="PuppetConfArchiveFiles" Name="puppet.conf"
-                  Action="createLine"
-                  Section="main"
-                  Key="archive_files" Value="true"
-                  Directory="PuppetConfDir" />
-                <IniFile Id="PuppetConfArchiveFileServer" Name="puppet.conf"
-                  Action="addLine"
-                  Section="main"
-                  Key="archive_file_server" Value="[PUPPET_MASTER_SERVER]"
-                  Directory="PuppetConfDir" />
-                <IniFile Id="PuppetConfGraph" Name="puppet.conf"
-                  Action="createLine"
-                  Section="main"
-                  Key="graph" Value="true"
-                  Directory="PuppetConfDir" />
-                <?endif ?>
               </Component>
               <Component Id="PuppetConfWithAgentEnvironment" Permanent="yes" Guid="EC56FB39-A176-42BA-BB1C-10C8DE76AE67">
                 <Condition>PUPPET_AGENT_ENVIRONMENT</Condition>
@@ -360,26 +341,47 @@
                   Directory="PuppetConfDir" />
               </Component>
             </Directory>
-            <!-- This PuppetVarDir directory is necessary to fix #12576 otherwise
-                 puppet cannot create the directories it needs since the parent
-                 does not exist. -->
             <Directory Id="PuppetVarDir" Name="var">
               <Component Id="PuppetVarDir" Permanent="yes" Guid="B95A17F3-CF5E-4EC7-859E-F10C0965645F">
                 <CreateFolder />
               </Component>
             </Directory>
           </Directory>
-          <Directory Id="HieraAppData" Name="hiera">
-            <Directory Id="HieraEtcDir" Name="etc">
-              <Component Id="HieraEtcDir" Permanent="yes" Guid="88DE0215-554E-44CC-A8EB-CD8C030B1695">
+          <Directory Id="CodeDir" Name="code">
+            <Component Id="CodeDir" Permanent="yes" Guid="0D29EB1B-604D-4FE1-A75C-F18CC230BEED">
+              <CreateFolder />
+              <File Id="HieraConf" KeyPath="yes" Source="stagedir\hiera\ext\hiera.yaml" />
+            </Component>
+            <Directory Id="HieraDataDir" Name="hieradata">
+              <Component Id="HieraDataDir" Permanent="yes" Guid="2438387C-BEA5-47C1-8B43-46FE30E14BEA">
                 <CreateFolder />
-                <File Id="HieraConf" KeyPath="yes" Source="stagedir\hiera\ext\hiera.yaml" />
               </Component>
             </Directory>
-            <Directory Id="HieraVarDir" Name="var">
-              <Component Id="HieraVarDir" Permanent="yes" Guid="01C15CC4-74D1-4E33-887B-E25CA4A8EFB6">
+            <Directory Id="CodeModulesDir" Name="modules">
+              <Component Id="CodeModulesDir" Permanent="yes" Guid="ae4a85a4-a305-4c95-b254-c2f06c586482">
                 <CreateFolder />
               </Component>
+            </Directory>
+            <Directory Id="EnvironmentsDir" Name="environments">
+              <Component Id="EnvironmentsDir" Permanent="yes" Guid="6a6a390a-8783-40b6-b49d-9e2b368e069d">
+                <CreateFolder />
+              </Component>
+              <Directory Id="ProductionDir" Name="production">
+                <Component Id="ProductionDir" Permanent="yes" Guid="b902efcd-756e-4340-8f13-5a79d46b93c7">
+                  <CreateFolder />
+                  <File Id="EnvironmentConf" KeyPath="yes" Source="stagedir\puppet\conf\environment.conf" />
+                </Component>
+                <Directory Id="ManifestsDir" Name="manifests">
+                  <Component Id="ManifestsDir" Permanent="yes" Guid="5484fadf-6d5e-4053-83fc-ea68918d6f2e">
+                    <CreateFolder />
+                  </Component>
+                </Directory>
+                <Directory Id="ModulesDir" Name="modules">
+                  <Component Id="ModulesDir" Permanent="yes" Guid="cbe9cc8d-3a38-4c4c-9f16-39e42093481a">
+                    <CreateFolder />
+                  </Component>
+                </Directory>
+              </Directory>
             </Directory>
           </Directory>
         </Directory>
@@ -408,8 +410,7 @@
       <!-- This section inspired by: http://wix.sourceforge.net/manual-wix3/write_a_registry_entry.htm -->
       <!-- We write to $(var.OurCompanyName)\$(var.OurCommonProductNameWord)
            (Puppet Labs\CommonProduct)
-           in order to restore the PUPPET_MASTER_SERVER property when replacing
-           Puppet FOSS with Puppet Enterprise. -->
+           in order to restore the PUPPET_MASTER_SERVER property -->
       <Component Id="RegistryEntries" Guid="68F5D91C-49C8-43F7-940A-481007689E79" Win64="no">
         <RegistryKey
           Root="HKLM"
@@ -436,9 +437,7 @@
       </Component>
       <?if $(var.Platform) = x86 ?>
         <Component Id="RegistryEntriesArchitectureDependent" Guid="E6D5AF4F-ACC4-4D11-AFCE-299A9ED2152C" Win64="no" Permanent="yes">
-          <!-- Product Specific Properties.  We keep INSTALLDIR here so as not to
-               accidentally install Puppet Enterprise into Puppet's default
-               install directory and vice-versa. -->
+          <!-- Product Specific Properties.  We keep INSTALLDIR here. -->
           <RegistryKey
             Root="HKLM"
             Key="SOFTWARE\$(var.OurCompanyName)\$(var.OurProductNameWord)"
@@ -774,8 +773,13 @@
       <ComponentRef Id="RegistryEntries" />
       <ComponentRef Id="RegistryEntriesArchitectureDependent" />
       <ComponentRef Id="PuppetVarDir" />
-      <ComponentRef Id="HieraVarDir" />
-      <ComponentRef Id="HieraEtcDir" />
+      <ComponentRef Id="CodeDir" />
+      <ComponentRef Id="HieraDataDir" />
+      <ComponentRef Id="CodeModulesDir" />
+      <ComponentRef Id="EnvironmentsDir" />
+      <ComponentRef Id="ProductionDir" />
+      <ComponentRef Id="ManifestsDir" />
+      <ComponentRef Id="ModulesDir" />
       <ComponentRef Id="PuppetShortcuts" />
       <ComponentRef Id="PuppetDocumentationShortcuts" />
 
@@ -784,6 +788,7 @@
       <ComponentGroupRef Id="sys" />
       <ComponentGroupRef Id="puppet" />
       <ComponentGroupRef Id="facter" />
+      <ComponentGroupRef Id="cfacter" />
       <ComponentGroupRef Id="hiera" />
       <ComponentGroupRef Id="bin" />
       <ComponentGroupRef Id="misc" />
@@ -801,14 +806,10 @@
       <ComponentRef Id="PuppetServiceAutomatic" />
       <ComponentRef Id="PuppetServiceManual" />
       <ComponentRef Id="PuppetServiceDisabled" />
-
-      <!-- The MCO Parts are for Puppet Enterprise -->
-      <?if $(var.PackageBrand) = enterprise ?>
       <ComponentGroupRef Id="mcollective" />
       <ComponentRef Id="MCOConfDir" />
       <ComponentRef Id="MCOLogDir" />
       <ComponentRef Id="MCOService" />
-      <?endif ?>
     </Feature>
   </Product>
 </Wix>

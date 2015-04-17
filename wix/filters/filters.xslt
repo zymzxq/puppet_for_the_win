@@ -13,4 +13,5 @@
   </xsl:template>
   <!-- when the ruby.exe filter matches, do nothing -->
   <xsl:template match="wix:Component[wix:File[@Source='$(var.StageDir)\ruby\bin\ruby.exe']]" />
+  <xsl:template match="wix:Component[wix:File[@Source='$(var.StageDir)\ruby\bin\rubyw.exe']]" />
 </xsl:stylesheet>
