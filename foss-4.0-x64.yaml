@@ -1,7 +1,7 @@
 ---
 :repos:
   puppet:
-    :ref: origin/stable
+    :ref: origin/master
     :repo: git://github.com/puppetlabs/puppet.git
   facter:
     :ref: 2.4.3
