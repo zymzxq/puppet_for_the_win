@@ -143,7 +143,7 @@ namespace :windows do
               rescue
                 sh "7za x -r -tzip -o#{name} #{config[:archive]}"
               end
-              sh "rm #{config[:archive]}"
+              FileUtils.rm(config[:archive])
             end
           else
             FileUtils.mkdir(name)
