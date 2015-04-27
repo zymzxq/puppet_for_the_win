@@ -17,15 +17,16 @@ REM Shift off the original command name we we were called
 SHIFT
 
 SET PUPPET_DIR=%PL_BASEDIR%\puppet
-SET FACTER_DIR=%PL_BASEDIR%\facter
+REM Facter will load FACTER_ env vars as facts, so don't use FACTER_DIR
+SET FACTERDIR=%PL_BASEDIR%\facter
 SET CFACTER_DIR=%PL_BASEDIR%\cfacter
 SET HIERA_DIR=%PL_BASEDIR%\hiera
 SET MCOLLECTIVE_DIR=%PL_BASEDIR%\mcollective
 
-SET PATH=%PUPPET_DIR%\bin;%FACTER_DIR%\bin;%CFACTER_DIR%\bin;%HIERA_DIR%\bin;%MCOLLECTIVE_DIR%\bin;%PL_BASEDIR%\bin;%PL_BASEDIR%\sys\ruby\bin;%PL_BASEDIR%\sys\tools\bin;%PATH%
+SET PATH=%PUPPET_DIR%\bin;%FACTERDIR%\bin;%CFACTER_DIR%\bin;%HIERA_DIR%\bin;%MCOLLECTIVE_DIR%\bin;%PL_BASEDIR%\bin;%PL_BASEDIR%\sys\ruby\bin;%PL_BASEDIR%\sys\tools\bin;%PATH%
 
 REM Set the RUBY LOAD_PATH using the RUBYLIB environment variable
-SET RUBYLIB=%PUPPET_DIR%\lib;%FACTER_DIR%\lib;%CFACTER_DIR%\lib;%HIERA_DIR%\lib;%MCOLLECTIVE_DIR%\lib;%RUBYLIB%;
+SET RUBYLIB=%PUPPET_DIR%\lib;%FACTERDIR%\lib;%CFACTER_DIR%\lib;%HIERA_DIR%\lib;%MCOLLECTIVE_DIR%\lib;%RUBYLIB%;
 
 REM Translate all slashes to / style to avoid issue #11930
 SET RUBYLIB=%RUBYLIB:\=/%
