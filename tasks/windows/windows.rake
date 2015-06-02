@@ -212,7 +212,8 @@ namespace :windows do
                    %r{/Gemfile},
                    %r{/Rakefile},
                    %r{/README.md},
-                   %r{/*.patch}
+                   %r{/*.patch},
+                   %r{/appveyor.yml}
                  ]
       # This avoids copying hidden files like .gitignore and .git
       FileUtils.cp_r(FileList["#{app}/*"].exclude(*excludes), dst, :verbose => true)
