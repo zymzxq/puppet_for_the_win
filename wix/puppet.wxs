@@ -621,6 +621,17 @@
        Property="PUPPET_AGENT_ACCOUNT_DOMAIN"
        Value="NT AUTHORITY"
        Execute="firstSequence"/>
+     <CustomAction Id="DeprecatedWindowsWarning"
+       Script="vbscript"
+       Execute="firstSequence">
+       <![CDATA[
+       Const msiMessageTypeWarning = &H02000000
+       Dim msgRecord
+       Set msgRecord = Session.Installer.CreateRecord(1)
+       msgRecord.StringData(0) = "Microsoft end of support for Windows Server 2003 / 2003R2 is July 14, 2015. The next version of $(var.OurProductName) won't support Windows 2003." & vbCrLf & vbCrLf & "http://links.puppetlabs.com/deprecate-windows-2003"
+       Session.Message msiMessageTypeWarning, msgRecord
+       ]]>
+     </CustomAction>
 
     <?if $(var.Platform) = x86 ?>
     <!-- If these fail, we don't want to fail the installer -->
@@ -657,6 +668,10 @@
          restore the properties set by the command line overriding the recalled
          value from the registry -->
     <InstallUISequence>
+      <!-- Unsupported Windows version check -->
+      <Custom Action="DeprecatedWindowsWarning" After="LaunchConditions">
+        <![CDATA[VersionNT < 600 AND NOT Installed]]>
+      </Custom>
       <!-- INSTALLDIR -->
       <Custom Action='SaveCmdLineInstallDir' Before='AppSearch' />
       <Custom Action='SetFromCmdLineInstallDir' After='AppSearch'>
@@ -702,6 +717,10 @@
       </Custom>
     </InstallUISequence>
     <InstallExecuteSequence>
+      <!-- Unsupported Windows version check -->
+      <Custom Action="DeprecatedWindowsWarning" After="LaunchConditions">
+        <![CDATA[VersionNT < 600 AND NOT Installed]]>
+      </Custom>
       <!-- INSTALLDIR -->
       <Custom Action='SaveCmdLineInstallDir' Before='AppSearch' />
       <Custom Action='SetFromCmdLineInstallDir' After='AppSearch'>
