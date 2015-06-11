@@ -32,6 +32,7 @@
     <Compile Include="ui\PuppetInstallDirDlg.wxs" />
     <Compile Include="ui\PuppetLicenseAgreementDlg.wxs" />
     <Compile Include="ui\PuppetWelcomeDlg.wxs" />
+    <Compile Include="ui\PuppetWarningDlg.wxs" />
     <Compile Include="ui\WixUI_PuppetInstallDir.wxs" />
   </ItemGroup>
   <ItemGroup>
@@ -56,6 +57,7 @@
     <Content Include="ui\PuppetInstallDirDlg.wixobj" />
     <Content Include="ui\PuppetLicenseAgreementDlg.wixobj" />
     <Content Include="ui\PuppetWelcomeDlg.wixobj" />
+    <Content Include="ui\PuppetWarningDlg.wixobj" />
     <Content Include="ui\WixUI_PuppetInstallDir.wixobj" />
   </ItemGroup>
   <ItemGroup>
