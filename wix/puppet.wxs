@@ -142,6 +142,9 @@
       <Directory Id="$(var.PlatformProgramFilesFolder)" >
         <Directory Id='PuppetLabs' Name="$(var.OurCompanyName)">
           <Directory Id='INSTALLDIR' Name="$(var.OurProductName)">
+            <Component Id='PuppetAgentVersionFile' Guid="4A51050C-D761-472E-91D8-95FD2AB34384">
+              <File Id="VERSION" Source="stagedir\VERSION" KeyPath="yes" Checksum="yes"/>
+            </Component>
             <Directory Id='sys' Name='sys'>
               <Directory Id='ruby' Name ='ruby'>
                 <Directory Id='ruby_bin' Name='bin'>
@@ -801,6 +804,7 @@
       <ComponentRef Id="MCOConfDir" />
       <ComponentRef Id="MCOLogDir" />
       <ComponentRef Id="MCOService" />
+      <ComponentRef Id="PuppetAgentVersionFile" />
     </Feature>
   </Product>
 </Wix>
