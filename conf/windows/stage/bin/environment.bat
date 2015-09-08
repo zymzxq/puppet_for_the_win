@@ -33,3 +33,7 @@ SET RUBYLIB=%RUBYLIB:\=/%
 REM Enable rubygems support
 SET RUBYOPT=rubygems
 REM Now return to the caller.
+
+REM Set SSL variables to ensure trusted locations are used
+SET SSL_CERT_FILE=%WINDIR%\system32\ssl\cert.pem
+SET SSL_CERT_DIR=%WINDIR%\system32\ssl\certs
