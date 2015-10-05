@@ -26,6 +26,7 @@
     <Compile Include="fragments\facter.wxs" />
     <Compile Include="fragments\hiera.wxs" />
     <Compile Include="fragments\misc.wxs" />
+    <Compile Include="fragments\pxp-agent.wxs" />
     <Compile Include="fragments\puppet.wxs" />
     <Compile Include="fragments\sys.wxs" />
     <Compile Include="puppet.wxs" />

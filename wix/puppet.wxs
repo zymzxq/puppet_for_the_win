@@ -783,6 +783,7 @@
       <ComponentGroupRef Id="sys" />
       <ComponentGroupRef Id="puppet" />
       <ComponentGroupRef Id="facter" />
+      <ComponentGroupRef Id="pxp-agent" />
       <ComponentGroupRef Id="hiera" />
       <ComponentGroupRef Id="bin" />
       <ComponentGroupRef Id="misc" />
