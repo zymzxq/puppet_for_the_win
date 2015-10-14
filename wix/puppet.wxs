@@ -248,6 +248,10 @@
                 <CreateFolder />
                 <File Id="PuppetDaemon" KeyPath="yes" Source="stagedir\service\daemon.rb" />
               </Component>
+              <Component Id="service_nssm" Guid="52B1CD57-95A2-4CA4-AB8E-9DDD6DE8FC66">
+                <CreateFolder />
+                <File Id="NSSM" KeyPath="yes" Source="stagedir\service\nssm.exe" />
+              </Component>
             </Directory>
           </Directory>
         </Directory>
@@ -788,6 +792,7 @@
       <ComponentGroupRef Id="bin" />
       <ComponentGroupRef Id="misc" />
       <ComponentRef Id="service" />
+      <ComponentRef Id="service_nssm" />
 
       <!-- The PuppetConf components are conditional on PUPPET_AGENT_CERTNAME -->
       <ComponentRef Id="PuppetConfWithCertname" />
