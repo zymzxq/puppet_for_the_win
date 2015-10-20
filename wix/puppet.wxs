@@ -386,6 +386,32 @@
               </Directory>
             </Directory>
           </Directory>
+          <Directory Id="pxpAgentDataFolder" Name="pxp-agent">
+            <Directory Id="pxpAgentDataFolderVar" Name="var">
+              <Directory Id="pxpAgentDataFolderLog" Name="log">
+                <Component Id="PXPAgentLogDir" Guid="DF0D0E2A-F069-4933-8AE9-5E779C8E93B9" Permanent="yes" >
+                  <CreateFolder/>
+                </Component>
+              </Directory>
+              <Directory Id="pxpAgentDataFolderRun" Name="run" >
+                <Component Id="PXPAgentRunDir" Guid="4AD77345-D8AE-40E4-B41C-706EC51FE63F" Permanent="yes" >
+                  <CreateFolder/>
+                </Component>
+              </Directory>
+              <Directory Id="pxpAgentDataFolderSpool" Name="spool" >
+                <Component Id="PXPAgentSpoolDir" Guid="F265A518-A7B7-4FA8-85D8-7306A10E1659" Permanent="yes" >
+                  <CreateFolder/>
+                </Component>
+              </Directory>
+            </Directory>
+            <Directory Id="pxpAgentDataFolderEtc" Name="etc">
+              <Directory Id="pxpAgentDataFolderModules" Name="modules" >
+                <Component Id="PXPAgentModulesDir" Guid="EC0FC78E-CCC5-42EB-AF09-378274AC7530" Permanent="yes" >
+                  <CreateFolder/>
+                </Component>
+              </Directory>
+            </Directory>
+          </Directory>
         </Directory>
       </Directory>
 
@@ -782,6 +808,10 @@
       <ComponentRef Id="ProductionDir" />
       <ComponentRef Id="ManifestsDir" />
       <ComponentRef Id="ModulesDir" />
+      <ComponentRef Id="PXPAgentModulesDir" />
+      <ComponentRef Id="PXPAgentSpoolDir" />
+      <ComponentRef Id="PXPAgentRunDir" />
+      <ComponentRef Id="PXPAgentLogDir" />
       <ComponentRef Id="PuppetShortcuts" />
       <ComponentRef Id="PuppetDocumentationShortcuts" />
 
