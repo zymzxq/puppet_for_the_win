@@ -236,7 +236,7 @@ namespace :windows do
   task :track_versions do
     version_tracking_file = 'stagedir/misc/versions.txt'
     agent_version_file = 'stagedir/VERSION'
-    content = ""
+    content = "#{File.basename(TOPDIR)} #{describe(TOPDIR)}\n"
     FileList["downloads/*"].each do |repo|
       is_git = File.exists?("#{repo}/.git")
       if is_git
