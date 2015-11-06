@@ -275,7 +275,10 @@
                   <!-- Skip responding to WM_QUIT and WM_CLOSE -->
                   <RegistryValue Name="AppStopMethodSkip" Value="6" Type="integer" />
                   <RegistryKey Key="AppExit">
+                    <!-- Stop the service completely on exit(2) (Invalid configuration) otherwise restart with NSSM service throttling -->
+                    <!-- nssm AppExit codes reference https://nssm.cc/usage#exit -->
                     <RegistryValue Value="Restart" Type="string" />
+                    <RegistryValue Name="2" Value="Exit" Type="string" />
                   </RegistryKey>
                 </RegistryKey>
 
