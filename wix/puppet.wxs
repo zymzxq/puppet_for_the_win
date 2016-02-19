@@ -325,11 +325,6 @@
                   Section="main"
                   Key="server" Value="[PUPPET_MASTER_SERVER]"
                   Directory="PuppetConfDir" />
-                <IniFile Id="PuppetConfPluginSync" Name="puppet.conf"
-                  Action="createLine"
-                  Section="main"
-                  Key="pluginsync" Value="true"
-                  Directory="PuppetConfDir" />
                 <IniFile Id="PuppetConfAutoflush" Name="puppet.conf"
                   Action="createLine"
                   Section="main"
