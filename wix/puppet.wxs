@@ -609,6 +609,59 @@
         Name="RememberedPuppetAgentStartupMode" Type="raw" Win64="no" />
     </Property>
 
+    <!-- Properties for existing Ini Values - expanding the remembered properties pattern just a bit
+    -->
+
+    <CustomAction Id="SetIniPropertyValues"
+                  Script="vbscript"
+                  Execute="firstSequence"
+                  Return="ignore">
+      <![CDATA[
+On Error Resume Next
+
+Function SetPropertyFromIni (keyName, propertyName, textToSearch)
+  Set iniValueRegex = New RegExp
+  iniValueRegex.IgnoreCase = true
+  iniValueRegex.Multiline = true
+  iniValueRegex.Global = false
+  iniValueRegex.Pattern = "^" & keyName & "=(.*[^\s\r\n]*)$"
+
+  Set matches = iniValueRegex.Execute(textToSearch)
+
+  dim iniValue
+  iniValue = ""
+
+  If (matches.Count <> 0) Then
+    If (matches.Item(0).SubMatches.Count <> 0) Then
+      iniValue = matches.Item(0).SubMatches(0)
+      iniValue = Replace(Replace(Replace(iniValue, Chr(13), ""), vbNewLine, ""), vbLf, "")
+    End If
+  End If
+
+  If (iniValue <> "") Then
+    Session.Property(propertyName) = iniValue
+  End If
+End Function
+
+Dim fso, wshShell, iniPath
+Set wshShell = CreateObject("WScript.Shell")
+iniPath = wshShell.ExpandEnvironmentStrings("%ALLUSERSPROFILE%\PuppetLabs\puppet\etc\puppet.conf")
+
+Set fso = CreateObject("Scripting.FileSystemObject")
+If (fso.FileExists(iniPath)) Then
+  Set iniFile = fso.OpenTextFile(iniPath, 1, false)
+  iniFileText = iniFile.ReadAll()
+  iniFile.Close
+  Set iniFile = Nothing
+
+  SetPropertyFromIni "server", "INI_PUPPET_MASTER_SERVER", iniFileText
+  SetPropertyFromIni "environment", "INI_PUPPET_AGENT_ENVIRONMENT", iniFileText
+  SetPropertyFromIni "certname", "INI_PUPPET_AGENT_CERTNAME", iniFileText
+  SetPropertyFromIni "ca_server", "INI_PUPPET_CA_SERVER", iniFileText
+End If
+      ]]>
+    </CustomAction>
+
     <!-- Custom Actions to handle command line property values that override
          remembered property values -->
     <!-- INSTALLDIR -->
@@ -621,6 +674,10 @@
       Value="[CMDLINE_INSTALLDIR]"
       Execute="firstSequence" />
     <!-- PUPPET_MASTER_SERVER -->
+    <CustomAction Id="SetFromIniPuppetMasterServer"
+      Property="PUPPET_MASTER_SERVER"
+      Value="[INI_PUPPET_MASTER_SERVER]"
+      Execute="firstSequence" />
     <CustomAction Id="SaveCmdLinePuppetMasterServer"
       Property="CMDLINE_PUPPET_MASTER_SERVER"
       Value="[PUPPET_MASTER_SERVER]"
@@ -634,6 +691,10 @@
       Value="puppet"
       Execute="firstSequence" />
     <!-- PUPPET_AGENT_ENVIRONMENT -->
+    <CustomAction Id="SetFromIniPuppetAgentEnvironment"
+      Property="PUPPET_AGENT_ENVIRONMENT"
+      Value="[INI_PUPPET_AGENT_ENVIRONMENT]"
+      Execute="firstSequence" />
     <CustomAction Id="SaveCmdLinePuppetAgentEnvironment"
       Property="CMDLINE_PUPPET_AGENT_ENVIRONMENT"
       Value="[PUPPET_AGENT_ENVIRONMENT]"
@@ -647,6 +708,10 @@
       Value="production"
       Execute="firstSequence" />
     <!-- PUPPET_AGENT_CERTNAME -->
+    <CustomAction Id="SetFromIniPuppetAgentCertname"
+      Property="PUPPET_AGENT_CERTNAME"
+      Value="[INI_PUPPET_AGENT_CERTNAME]"
+      Execute="firstSequence" />
     <CustomAction Id="SaveCmdLinePuppetAgentCertname"
       Property="CMDLINE_PUPPET_AGENT_CERTNAME"
       Value="[PUPPET_AGENT_CERTNAME]"
@@ -656,6 +721,10 @@
       Value="[CMDLINE_PUPPET_AGENT_CERTNAME]"
       Execute="firstSequence" />
     <!-- PUPPET_CA_SERVER -->
+    <CustomAction Id="SetFromIniPuppetCaServer"
+      Property="PUPPET_CA_SERVER"
+      Value="[INI_PUPPET_CA_SERVER]"
+      Execute="firstSequence" />
     <CustomAction Id="SaveCmdLinePuppetCaServer"
       Property="CMDLINE_PUPPET_CA_SERVER"
       Value="[PUPPET_CA_SERVER]"
@@ -722,30 +791,43 @@
       <Custom Action='SetFromCmdLineInstallDir' After='AppSearch'>
         CMDLINE_INSTALLDIR
       </Custom>
+      <Custom Action='SetIniPropertyValues' After='AppSearch' />
       <!-- PUPPET_MASTER_SERVER -->
+      <Custom Action='SetFromIniPuppetMasterServer' Before='FileCost'>
+        INI_PUPPET_MASTER_SERVER
+      </Custom>
       <Custom Action='SaveCmdLinePuppetMasterServer' Before='AppSearch' />
-      <Custom Action='SetFromCmdLinePuppetMasterServer' After='AppSearch'>
+      <Custom Action='SetFromCmdLinePuppetMasterServer' After='FileCost'>
         CMDLINE_PUPPET_MASTER_SERVER
       </Custom>
-      <Custom Action='SetDefaultPuppetMasterServer' After='AppSearch'>
+      <Custom Action='SetDefaultPuppetMasterServer' Before='CostFinalize'>
         PUPPET_MASTER_SERVER=""
       </Custom>
       <!-- PUPPET_AGENT_ENVIRONMENT -->
+      <Custom Action='SetFromIniPuppetAgentEnvironment' Before='FileCost'>
+        INI_PUPPET_AGENT_ENVIRONMENT
+      </Custom>
       <Custom Action='SaveCmdLinePuppetAgentEnvironment' Before='AppSearch' />
-      <Custom Action='SetFromCmdLinePuppetAgentEnvironment' After='AppSearch'>
+      <Custom Action='SetFromCmdLinePuppetAgentEnvironment' After='FileCost'>
         CMDLINE_PUPPET_AGENT_ENVIRONMENT
       </Custom>
-      <Custom Action='SetDefaultPuppetAgentEnvironment' After='AppSearch'>
+      <Custom Action='SetDefaultPuppetAgentEnvironment' Before='CostFinalize'>
         PUPPET_AGENT_ENVIRONMENT=""
       </Custom>
       <!-- PUPPET_AGENT_CERTNAME -->
+      <Custom Action='SetFromIniPuppetAgentCertname' Before='FileCost'>
+        INI_PUPPET_AGENT_CERTNAME
+      </Custom>
       <Custom Action='SaveCmdLinePuppetAgentCertname' Before='AppSearch' />
-      <Custom Action='SetFromCmdLinePuppetAgentCertname' After='AppSearch'>
+      <Custom Action='SetFromCmdLinePuppetAgentCertname' After='FileCost'>
         CMDLINE_PUPPET_AGENT_CERTNAME
       </Custom>
       <!-- PUPPET_CA_SERVER -->
+      <Custom Action='SetFromIniPuppetCaServer' Before='FileCost'>
+        INI_PUPPET_CA_SERVER
+      </Custom>
       <Custom Action='SaveCmdLinePuppetCaServer' Before='AppSearch' />
-      <Custom Action='SetFromCmdLinePuppetCaServer' After='AppSearch'>
+      <Custom Action='SetFromCmdLinePuppetCaServer' After='FileCost'>
         CMDLINE_PUPPET_CA_SERVER
       </Custom>
       <!-- PUPPET_AGENT_STARTUP_MODE -->
@@ -762,38 +844,51 @@
       </Custom>
     </InstallUISequence>
     <InstallExecuteSequence>
+      <Custom Action='SetIniPropertyValues' After='AppSearch' />
       <!-- INSTALLDIR -->
       <Custom Action='SaveCmdLineInstallDir' Before='AppSearch' />
       <Custom Action='SetFromCmdLineInstallDir' After='AppSearch'>
         CMDLINE_INSTALLDIR
       </Custom>
       <!-- PUPPET_MASTER_SERVER -->
+      <Custom Action='SetFromIniPuppetMasterServer' Before='FileCost'>
+        INI_PUPPET_MASTER_SERVER
+      </Custom>
       <Custom Action='SaveCmdLinePuppetMasterServer' Before='AppSearch' />
-      <Custom Action='SetFromCmdLinePuppetMasterServer' After='AppSearch'>
+      <Custom Action='SetFromCmdLinePuppetMasterServer' After='FileCost'>
         CMDLINE_PUPPET_MASTER_SERVER
       </Custom>
-      <Custom Action='SetDefaultPuppetMasterServer' After='AppSearch'>
+      <Custom Action='SetDefaultPuppetMasterServer' Before='CostFinalize'>
         PUPPET_MASTER_SERVER=""
       </Custom>
       <!-- PUPPET_AGENT_ENVIRONMENT -->
+      <Custom Action='SetFromIniPuppetAgentEnvironment' Before='FileCost'>
+        INI_PUPPET_AGENT_ENVIRONMENT
+      </Custom>
       <Custom Action='SaveCmdLinePuppetAgentEnvironment' Before='AppSearch' />
-      <Custom Action='SetFromCmdLinePuppetAgentEnvironment' After='AppSearch'>
+      <Custom Action='SetFromCmdLinePuppetAgentEnvironment' After='FileCost'>
         CMDLINE_PUPPET_AGENT_ENVIRONMENT
       </Custom>
-      <Custom Action='SetDefaultPuppetAgentEnvironment' After='AppSearch'>
+      <Custom Action='SetDefaultPuppetAgentEnvironment' Before='CostFinalize'>
         PUPPET_AGENT_ENVIRONMENT=""
       </Custom>
        <!-- PUPPET_AGENT_CERTNAME -->
+      <Custom Action='SetFromIniPuppetAgentCertname' Before='FileCost'>
+        INI_PUPPET_AGENT_CERTNAME
+      </Custom>
       <Custom Action='SaveCmdLinePuppetAgentCertname' Before='AppSearch' />
-      <Custom Action='SetFromCmdLinePuppetAgentCertname' After='AppSearch'>
+      <Custom Action='SetFromCmdLinePuppetAgentCertname' After='FileCost'>
         CMDLINE_PUPPET_AGENT_CERTNAME
       </Custom>
       <!-- PUPPET_CA_SERVER -->
+      <Custom Action='SetFromIniPuppetCaServer' Before='FileCost'>
+        INI_PUPPET_CA_SERVER
+      </Custom>
       <Custom Action='SaveCmdLinePuppetCaServer' Before='AppSearch' />
-      <Custom Action='SetFromCmdLinePuppetCaServer' After='AppSearch'>
+      <Custom Action='SetFromCmdLinePuppetCaServer' After='FileCost'>
         CMDLINE_PUPPET_CA_SERVER
       </Custom>
-      <!-- PUPPET_AGENT_START_MODE -->
+      <!-- PUPPET_AGENT_STARTUP_MODE -->
       <Custom Action='SaveCmdLinePuppetAgentStartupMode' Before='AppSearch' />
       <Custom Action='SetFromCmdLinePuppetAgentStartupMode' After='AppSearch'>
         CMDLINE_PUPPET_AGENT_STARTUP_MODE
