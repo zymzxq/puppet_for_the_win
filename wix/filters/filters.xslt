@@ -14,4 +14,13 @@
   <!-- when the ruby.exe filter matches, do nothing -->
   <xsl:template match="wix:Component[wix:File[@Source='$(var.StageDir)\ruby\bin\ruby.exe']]" />
   <xsl:template match="wix:Component[wix:File[@Source='$(var.StageDir)\ruby\bin\rubyw.exe']]" />
+
+  <!-- Ignore test artifacts  -->
+  <xsl:template match="wix:Component[contains(wix:File/@Source, 'lth_cat.exe')]" />
+  <xsl:template match="wix:Component[contains(wix:File/@Source, 'libfacter_test.exe')]" />
+  <xsl:template match="wix:Component[contains(wix:File/@Source, 'libtest.so')]" />
+  <xsl:template match="wix:Component[contains(wix:File/@Source, 'libtest1.so')]" />
+  <xsl:template match="wix:Component[contains(wix:File/@Source, 'cpp-pcp-client-unittests.exe')]" />
+  <xsl:template match="wix:Component[contains(wix:File/@Source, 'libcpp-pcp-client-unittests.dll.a')]" />
+  <xsl:template match="wix:Component[contains(wix:File/@Source, 'pxp-agent-unittests.exe')]" />
 </xsl:stylesheet>
