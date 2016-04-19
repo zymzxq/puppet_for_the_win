@@ -25,7 +25,7 @@
       InstallerVersion='300'
       InstallScope="perMachine"
       Description="$(var.OurProductName)$(var.OurProductPlatformText) Installer"
-      Comments="http://www.puppetlabs.com/"
+      Comments="http://www.puppet.com/"
       Compressed="yes"
       Platform="$(var.Platform)"
       />
@@ -236,7 +236,7 @@
                 and set it to automatic -->
                 <ServiceInstall Id="MCOServiceInstaller"
                   Account="LocalSystem"
-                  Description="Puppet Labs server orchestration framework"
+                  Description="Puppet server orchestration framework"
                   DisplayName="Marionette Collective Server"
                   Interactive="no"
                   Name="pe-mcollective"
