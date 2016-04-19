@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Include>
+  <!-- these variables should not be changed to just Puppet or Puppet, Inc. due
+       to pathing and other implications  -->
   <?define OurCompanyName="Puppet Labs"?>
   <?define OurCompanyNameWord="PuppetLabs"?>
   <?define OurCommonProductNameWord="PuppetInstaller"?>
@@ -34,14 +36,14 @@
        IF IT CHANGES. REALLY!  DON'T DO IT! -->
   <?define UpgradeCode="2AD3D11C-61B3-4710-B106-B4FDEC5FA358" ?>
 
-  <?define CommunityLink="http://links.puppetlabs.com/windows-installer-starting-out" ?>
-  <?define ForgeLink="http://links.puppetlabs.com/forge-windows" ?>
+  <?define CommunityLink="http://docs.puppet.com/community" ?>
+  <?define ForgeLink="http://forge.puppet.com" ?>
 
   <?define OurProductName="Puppet" ?>
   <?define OurProductNameWord="Puppet" ?>
-  <?define NextStepLink="http://links.puppetlabs.com/windows-installer-next-steps-foss" ?>
-  <?define HelpLink="http://links.puppetlabs.com/customer-support-foss" ?>
-  <?define ManualLink="http://links.puppetlabs.com/windows-manual-foss" ?>
+  <?define NextStepLink="http://docs.puppet.com/pe/latest/quick_start_install_agents_windows.html" ?>
+  <?define HelpLink="http://puppet.com/services/customer-support" ?>
+  <?define ManualLink="http://docs.puppet.com/puppet/latest/reference" ?>
   <?define VersionUIString="$(var.MajorVersion).$(var.MinorVersion).$(var.BuildVersion)" ?>
   <?define BitmapFolder="wix\ui\bitmaps" ?>
   <?define DialogBitmap="dlgbmp-foss.bmp" ?>
