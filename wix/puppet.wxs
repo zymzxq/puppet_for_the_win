@@ -320,6 +320,7 @@
               <!-- This is a permanent directory, do not remove on uninstall -->
               <Component Id="PuppetConfUnconditionalSettings" Permanent="yes" Guid="B9179A60-483F-4F32-8E3F-AD632B0DEBB4">
                 <CreateFolder />
+                <File Id="HieraConf" KeyPath="yes" Source="stagedir\hiera\ext\hiera.yaml" />
                 <IniFile Id="PuppetConfServer" Name="puppet.conf"
                   Action="addLine"
                   Section="main"
@@ -381,7 +382,6 @@
           <Directory Id="CodeDir" Name="code">
             <Component Id="CodeDir" Permanent="yes" Guid="0D29EB1B-604D-4FE1-A75C-F18CC230BEED">
               <CreateFolder />
-              <File Id="HieraConf" KeyPath="yes" Source="stagedir\hiera\ext\hiera.yaml" />
             </Component>
             <Directory Id="HieraDataDir" Name="hieradata">
               <Component Id="HieraDataDir" Permanent="yes" Guid="2438387C-BEA5-47C1-8B43-46FE30E14BEA">
