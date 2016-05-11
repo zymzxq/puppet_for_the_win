@@ -25,7 +25,7 @@
       InstallerVersion='300'
       InstallScope="perMachine"
       Description="$(var.OurProductName)$(var.OurProductPlatformText) Installer"
-      Comments="http://www.puppetlabs.com/"
+      Comments="http://www.puppet.com/"
       Compressed="yes"
       Platform="$(var.Platform)"
       />
@@ -225,7 +225,7 @@
                     <ServiceInstall Id="MCOServiceInstaller"
                       Account="[PUPPET_AGENT_ACCOUNT_DOMAIN]\[PUPPET_AGENT_ACCOUNT_USER]"
                       Password="[PUPPET_AGENT_ACCOUNT_PASSWORD]"
-                      Description="Puppet Labs server orchestration framework"
+                      Description="Puppet server orchestration framework"
                       DisplayName="Marionette Collective Server"
                       Interactive="no"
                       Name="mcollective"
