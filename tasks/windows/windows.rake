@@ -1,7 +1,7 @@
 #! /usr/bin/env ruby
 
 # This rakefile is meant to be run from within the [Puppet Win
-# Builder](http://links.puppetlabs.com/puppetwinbuilder) tree.
+# Builder](https://downloads.puppet.com/development/puppetwinbuilder.zip) tree.
 
 # Load Rake
 begin
@@ -320,7 +320,7 @@ namespace :windows do
     msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppetenterprise.msi'
     Dir.chdir TOPDIR do
       Dir.chdir "pkg" do
-        sh "signtool sign /d \"Puppet Enterprise\" /du \"http://www.puppetlabs.com\" /n \"Puppet Labs\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{msi_file_name}"
+        sh "signtool sign /d \"Puppet Enterprise\" /du \"http://www.puppet.com\" /n \"Puppet Inc\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{msi_file_name}"
       end
     end
   end
@@ -333,7 +333,7 @@ namespace :windows do
     msi_file_name =  ENV['PKG_FILE_NAME'] || 'puppet.msi'
     Dir.chdir TOPDIR do
       Dir.chdir "pkg" do
-        sh "signtool sign /d \"Puppet\" /du \"http://www.puppetlabs.com\" /n \"Puppet Labs\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{msi_file_name}"
+        sh "signtool sign /d \"Puppet\" /du \"http://www.puppet.com\" /n \"Puppet Inc\" /t \"http://timestamp.verisign.com/scripts/timstamp.dll\" #{msi_file_name}"
       end
     end
   end

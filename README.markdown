@@ -16,7 +16,7 @@ This project requires these tools from the `puppetwinbuilder` Dev Kit for Window
 # Getting Started #
 
 Download the [Puppet Win
-Builder](http://links.puppetlabs.com/puppetwinbuilder) archive, and unzip into `C:/puppetwinbuilder/`. Once extracted, execute the
+Builder](https://downloads.puppet.com/development/puppetwinbuilder.zip) archive, and unzip into `C:/puppetwinbuilder/`. Once extracted, execute the
 `setup_env.bat` script which will update your PATH to include the
 necessary tools, e.g. git, wix (heat, candle, and light), etc.
 
@@ -162,8 +162,8 @@ Here's the less scary notification when installing a signed package:
 
 ![User Account Control](http://dl.dropbox.com/u/17169007/img/Screen%20Shot%202012-03-14%20at%203.40.15%20PM.png)
 
-To digitally sign the packages, the [Puppet Labs Code Signing
-Certificate](https://groups.google.com/a/puppetlabs.com/group/tech/browse_thread/thread/3d85b1da489af092#)
+To digitally sign the packages, the [Puppet Code Signing
+Certificate](https://groups.google.com/a/puppet.com/group/tech/browse_thread/thread/3d85b1da489af092#)
 should be installed into the user store on the windows build host.  If Jenkins is being used to automate the package builds, then this certificate and private key should be installed using the same account the Jenkins agent is running as.
 
 There should only be one code signing certificate installed.  The `signtool` will automatically select the right certificate if there is only one of them installed.
@@ -173,11 +173,11 @@ Double clicking on the PFX file will install the certificate properly. I also re
 Once the MSI packages have been built, they can be signed with the following task:
 
     Z:\vagrant\win\puppetwinbuilder\src\puppet_for_the_win>rake windows:sign
-    signtool sign /d "Puppet Enterprise" /du "http://www.puppetlabs.com" /n "Puppet Labs" \
+    signtool sign /d "Puppet Enterprise" /du "http://www.puppet.com" /n "Puppet Inc" \
       /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppetenterprise.msi
     Done Adding Additional Store
     Successfully signed and timestamped: puppetenterprise.msi
-    signtool sign /d "Puppet" /du "http://www.puppetlabs.com" /n "Puppet Labs" \
+    signtool sign /d "Puppet" /du "http://www.puppet.com" /n "Puppet Inc" \
       /t "http://timestamp.verisign.com/scripts/timstamp.dll" puppet.msi
     Done Adding Additional Store
     Successfully signed and timestamped: puppet.msi
