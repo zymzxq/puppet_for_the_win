@@ -1,7 +1,7 @@
 #! /usr/bin/env ruby
 
 # This rakefile is meant to be run from within the [Puppet Win
-# Builder](http://links.puppetlabs.com/puppetwinbuilder) tree.
+# Builder](https://downloads.puppet.com/development/puppetwinbuilder.zip) tree.
 
 # Ensure '.' is in the LOAD_PATH in Ruby 1.9.2
 $LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__))
